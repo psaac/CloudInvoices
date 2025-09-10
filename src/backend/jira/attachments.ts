@@ -1,0 +1,36 @@
+import api, { route } from "@forge/api";
+import { Buffer } from "buffer";
+
+const attachPdfToIssue = async (pdfBytes: Uint8Array, workItemKey: string) => {
+  const boundary = "----ForgeFormBoundary" + Math.random().toString(16).slice(2);
+
+  // 3. Construire le body multipart
+  const bodyStart =
+    `--${boundary}\r\n` +
+    `Content-Disposition: form-data; name="file"; filename="export-${workItemKey}.pdf"\r\n` +
+    `Content-Type: application/pdf\r\n\r\n`;
+
+  const bodyEnd = `\r\n--${boundary}--\r\n`;
+
+  // Transformer en Buffer (Forge accepte les Uint8Array)
+  const body = new Uint8Array([...Buffer.from(bodyStart, "utf8"), ...pdfBytes, ...Buffer.from(bodyEnd, "utf8")]);
+
+  // 4. Appeler l’API Jira
+  const response = await api.asApp().requestJira(route`/rest/api/3/issue/${workItemKey}/attachments`, {
+    method: "POST",
+    headers: {
+      "X-Atlassian-Token": "no-check",
+      "Content-Type": `multipart/form-data; boundary=${boundary}`,
+      Accept: "application/json",
+    },
+    body: body as any, // hack pour typer correctement
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to upload PDF: ${response.status} ${response.statusText}`);
+  }
+
+  return await response.json();
+};
+
+export { attachPdfToIssue };
