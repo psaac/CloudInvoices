@@ -28,7 +28,10 @@ export const SETTINGS = {
     DebitCredit: "customfield_10198",
   },
   FN_CHARGEBACK_ASSET: "Asset Chargeback Account",
+  FN_APPLICATION_ASSET: "Asset Application Account",
   STATUS_ASSET_OK: "Asset OK",
   STATUS_ASSET_ERROR: "Asset Error",
   STATUS_NEW: "New",
+  STATUS_DONE: "Done",
+  SHARED_COST_ACCOUNT_NAMES: ["corp-it-cloudops-shared", "ARRIS-Ungrouped"],
 };

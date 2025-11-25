@@ -18,14 +18,21 @@ import {
 } from "../backend/chargeback";
 import { linkWorkItems } from "../backend/jira/links";
 // import { log } from "../backend/logger";
+import { computeSharedCosts } from "../backend/sharedCosts";
+import { GenerateInvoicesParams } from "../backend/types";
+import { Settings, Task } from "../types";
+import SettingsCore from "../backend/settings";
+import { Spaces } from "../backend/spaces";
+import { WorkTypes } from "../backend/workTypes";
+import { WorkSpaces } from "../backend/workspaces";
+import { ObjectSchemas } from "../backend/objectchemas";
+import { ObjectTypes } from "../backend/objecttypes";
+import { ObjectAttributes } from "../backend/objectattributes";
+import { Fields } from "../backend/fields";
+import { Tasks } from "../backend/tasks";
+import { Assets } from "../backend/assets";
 
 const resolver = new Resolver();
-
-interface GenerateInvoicesParams {
-  billingMonth: string;
-  baseUrl: string;
-  startIndex?: number;
-}
 
 resolver.define("getServerInfos", async () => {
   const response = await api.asApp().requestJira(route`/rest/api/3/serverInfo`, {
@@ -50,6 +57,81 @@ resolver.define("getServerInfos", async () => {
 resolver.define("getCurrentUserHasChargebackRole", async (): Promise<boolean> => {
   return await currentUserHasRole(SETTINGS.CHARGEBACK_PROJECTROLE_ID);
 });
+
+resolver.define("getSettings", async (): Promise<Settings> => {
+  return await SettingsCore.getSettings();
+});
+
+resolver.define("setSettings", async ({ payload }) => {
+  const lPayload = payload as { settings: Settings };
+  await SettingsCore.setSettings(lPayload.settings);
+});
+
+resolver.define("searchSpaces", async ({ payload }): Promise<Array<{ id: string; name: string }>> => {
+  const lPayload = payload as { query: string };
+  return await Spaces.searchSpaces(lPayload.query);
+});
+
+resolver.define("getSpace", async ({ payload }): Promise<{ id: string; name: string }> => {
+  const lPayload = payload as { spaceId: string };
+  return await Spaces.getSpace(lPayload.spaceId);
+});
+
+resolver.define("getWorkTypes", async ({ payload }): Promise<Array<{ id: string; name: string }>> => {
+  const lPayload = payload as { spaceId: string };
+  return await WorkTypes.getWorkTypes(lPayload.spaceId);
+});
+
+resolver.define("getWorkType", async ({ payload }): Promise<{ id: string; name: string }> => {
+  const lPayload = payload as { workTypeId: string };
+  return await WorkTypes.getWorkType(lPayload.workTypeId);
+});
+
+resolver.define("getWorkSpaces", async (): Promise<Array<{ id: string; name: string }>> => {
+  return await WorkSpaces.getWorkSpaces();
+});
+
+resolver.define("getObjectSchemas", async ({ payload }): Promise<Array<{ id: string; name: string }>> => {
+  const lPayload = payload as { workSpaceId: string };
+  return await ObjectSchemas.getObjectSchemas(lPayload.workSpaceId);
+});
+
+resolver.define("getObjectTypes", async ({ payload }): Promise<Array<{ id: string; name: string }>> => {
+  const lPayload = payload as { workSpaceId: string; objectSchemaId: string };
+  return await ObjectTypes.getObjectTypes(lPayload.workSpaceId, lPayload.objectSchemaId);
+});
+
+resolver.define("getObjectAttributes", async ({ payload }): Promise<Array<{ id: string; name: string }>> => {
+  const lPayload = payload as { workSpaceId: string; objectTypeId: string };
+  return await ObjectAttributes.getObjectAttributes(lPayload.workSpaceId, lPayload.objectTypeId);
+});
+
+resolver.define("searchFields", async ({ payload }): Promise<Array<{ id: string; name: string }>> => {
+  const lPayload = payload as { spaceId: string; query: string };
+  return await Fields.searchFields(lPayload.spaceId, lPayload.query);
+});
+
+resolver.define("getField", async ({ payload }): Promise<{ id: string; name: string }> => {
+  const lPayload = payload as { fieldId: string };
+  return await Fields.getField(lPayload.fieldId);
+});
+
+// Chargeback process
+// Get all work items with specific batch id
+resolver.define("getTasksByBatchId", async ({ payload }): Promise<Array<Task>> => {
+  const lPayload = payload as { batchId: string; settings: Settings; baseUrl: string };
+  return await Tasks.getTasksByBatchId(lPayload.batchId, lPayload.settings, lPayload.baseUrl);
+});
+
+resolver.define(
+  "loadChargebackAssets",
+  async ({ payload }): Promise<{ attrs: Array<{ id: string; name: string }>; assets: Array<any> }> => {
+    const lPayload = payload as { settings: Settings };
+    return await Assets.loadChargebackAssets(lPayload.settings);
+  }
+);
+
+// OLD STUFF BELOW HERE - TO CLEAN UP LATER
 
 resolver.define("getNewChargebackInList", async ({ payload }): Promise<ChargebackIn[]> => {
   const params: GenerateInvoicesParams = payload as GenerateInvoicesParams;
@@ -322,14 +404,13 @@ const generateSingleChargebackIn = async ({ chargebackIn, billingMonth }: Genera
   addChargebackLineOut("Credit");
 
   // Finally transition chargebackIn to Done status
-  await transition({ workItemKey: chargebackIn.key, status: "Done" });
+  await transition({ workItemKey: chargebackIn.key, status: SETTINGS.STATUS_DONE });
 
   // TODO Cleanup :
   // Remove work items of type ChargebackLineOut with no links
 };
 
-// TODO : handle parallel process
-// payload will contain the invoices to process
+// Payload will contain the invoices to process
 // and startIndex (bulk process)
 resolver.define("generateChargebackOut", async ({ payload }) => {
   // const { chargebackInList, startIndex, billingMonth } = payload;
@@ -396,6 +477,7 @@ const updateChargebackGroupOutCost = async (chargebackGroupOut: any) => {
 
 resolver.define("updateChargebackGroupOutCost", async () => {
   // Load all ChargebackGroupOut with new status
+  // TODO : add billing month
   const chargebackGroupOutWorkItems = await searchWorkItems({
     jql: `project = ${SETTINGS.PROJECT_KEY} AND issueType = ${SETTINGS.CHARGEBACKGROUP_OUT_WORKTYPE_NAME} AND status = NEW`,
     fields: ["summary", "issuelinks", "cost"],
@@ -415,7 +497,6 @@ const updateChargebackOutCost = async (chargebackOut: any) => {
   );
 
   // Sum costs of linked items
-  // let cost = 0;
   if (linkedWorkItemLinks.length > 0) {
     let cost = 0;
     const linkedWorkItems = await getWorkItems({
@@ -489,6 +570,10 @@ resolver.define("getDoneChargebackOutList", async ({ payload }): Promise<Chargeb
     issueType: SETTINGS.CHARGEBACKOUT_WORKTYPE_NAME,
     status: "Closed",
   });
+});
+
+resolver.define("computeSharedCosts", async ({ payload }) => {
+  computeSharedCosts(payload as GenerateInvoicesParams);
 });
 
 resolver.define("generateInvoices", async ({ payload }) => {

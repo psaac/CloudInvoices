@@ -20,10 +20,12 @@ app:
   id: ari:cloud:ecosystem::app/d582aaea-0710-4e4b-9318-33caee783d33
 permissions:
   scopes:
+    - storage:app
     - read:jira-work
     - write:jira-work
     - read:jira-user
     - read:cmdb-object:jira
     - read:cmdb-schema:jira
     - read:cmdb-type:jira
+    - read:cmdb-attribute:jira
     - read:servicedesk-request

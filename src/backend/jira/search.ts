@@ -1,5 +1,5 @@
 import api, { route } from "@forge/api";
-import { log } from "../logger";
+// import { log } from "../logger";
 // import { log } from "../logger";
 
 interface SearchWorkItemsType {
@@ -26,9 +26,10 @@ async function internalSearchWorkItems(params: SearchWorkItemsType) {
 }
 
 async function searchWorkItems({ jql, fields, maxResults }: SearchWorkItemsType) {
-  log("Searching work items with JQL:", JSON.stringify({ jql, fields, maxResults }));
+  // log("Searching work items with JQL:", JSON.stringify({ jql, fields, maxResults }));
   fields = fields || ["summary"];
   maxResults = maxResults || 50;
+  // TODO: add project filtering to JQL if not present
   let responseData = await internalSearchWorkItems({
     jql,
     fields,
