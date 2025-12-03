@@ -16,9 +16,9 @@ export class Tasks {
         "summary",
         `${settings.inputFieldBatchId}`,
         `${settings.inputFieldBillingMonth}`,
-        `${settings.inputFieldExternalId}`,
-        `${settings.inputFieldCost}`,
-        `${settings.inputFieldAccountId}`,
+        // `${settings.inputFieldExternalId}`,
+        // `${settings.inputFieldCost}`,
+        // `${settings.inputFieldAccountId}`,
       ],
     });
 
@@ -27,10 +27,10 @@ export class Tasks {
         Key: workItem.key,
         BatchId: workItem.fields[settings.inputFieldBatchId || ""] || "",
         BillingMonth: workItem.fields[settings.inputFieldBillingMonth || ""] || "",
-        ExternalId: workItem.fields[settings.inputFieldExternalId || ""] || "",
+        // ExternalId: workItem.fields[settings.inputFieldExternalId || ""] || "",
         Summary: workItem.fields.summary || "",
-        Cost: workItem.fields[settings.inputFieldCost || ""] || 0,
-        AccountId: workItem.fields[settings.inputFieldAccountId || ""] || "",
+        // Cost: workItem.fields[settings.inputFieldCost || ""] || 0,
+        // AccountId: workItem.fields[settings.inputFieldAccountId || ""] || "",
         link: `${baseUrl}/browse/${workItem.key}`,
       }));
     }

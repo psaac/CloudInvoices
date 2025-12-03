@@ -1,31 +1,7 @@
 import React from "react";
 import { Text, Lozenge } from "@forge/react";
 import type { ThemeAppearance } from "@atlaskit/lozenge";
-
-export interface Month {
-  label: string;
-  value: string;
-}
-
-export function getLastMonths(count = 7): Month[] {
-  const months: Month[] = [];
-  const now = new Date();
-
-  for (let i = 0; i < count; i++) {
-    const d = new Date(now);
-    d.setMonth(now.getMonth() - i); // uses setMonth, safer then new Date(..., month - i)
-
-    const label = d.toLocaleString("en-GB", {
-      year: "numeric",
-      month: "long",
-    });
-
-    const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-
-    months.push({ label, value });
-  }
-  return months;
-}
+import { CloudData, CloudVendor } from "../backend/CloudData";
 
 const internalLozenge = (text: string, appearance: ThemeAppearance) => {
   return (
@@ -37,24 +13,44 @@ const internalLozenge = (text: string, appearance: ThemeAppearance) => {
   );
 };
 
-const LozengeNew = () => {
+export const LozengeNew = () => {
   return internalLozenge("New", "default");
 };
 
-const LozengeAssetOK = () => {
+export const LozengeAssetOK = () => {
   return internalLozenge("Asset OK", "success");
 };
 
-const LozengeAssetError = () => {
-  return internalLozenge("Asset Error", "removed");
+export const LozengeError = ({ text }: { text: string }) => {
+  return internalLozenge(text, "removed");
 };
 
-const LozengeInProgress = () => {
+export const LozengeInProgress = () => {
   return internalLozenge("In Progress", "inprogress");
 };
 
-const LozengeDone = () => {
+export const LozengeDone = () => {
   return internalLozenge("Done", "success");
 };
 
-export { LozengeNew, LozengeAssetOK, LozengeAssetError, LozengeInProgress, LozengeDone };
+export const allVendorsSelected = (selectedCloudData: Array<CloudData>, cloudVendors: Array<CloudVendor>): boolean => {
+  const vendorSelectionCount = new Map<string, number>();
+  cloudVendors.forEach((vendor: CloudVendor) => {
+    vendorSelectionCount.set(vendor.value, 0);
+  });
+
+  // Count selections per vendor
+  selectedCloudData.forEach((data: CloudData) => {
+    vendorSelectionCount.set(data.CloudVendor.value, (vendorSelectionCount.get(data.CloudVendor.value) || 0) + 1);
+  });
+
+  for (const count of vendorSelectionCount.values()) {
+    if (count !== 1) return false;
+  }
+
+  return true;
+};
+
+export const round2 = (num: number): number => {
+  return Math.round(num * 100) / 100;
+};

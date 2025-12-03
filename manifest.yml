@@ -29,3 +29,5 @@ permissions:
     - read:cmdb-type:jira
     - read:cmdb-attribute:jira
     - read:servicedesk-request
+    - manage:jira-project
+    - manage:jira-configuration

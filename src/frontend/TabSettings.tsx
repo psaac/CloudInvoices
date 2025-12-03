@@ -76,16 +76,16 @@ export const SettingsTab = ({
                 }}
               />
               <FieldSelect
-                label="Field for External Id"
-                fieldId={settings.inputFieldExternalId || ""}
+                label="Field for Cloud Vendor"
+                fieldId={settings.inputFieldCloudVendor || ""}
                 spaceId={settings.spaceId || ""}
                 onChange={(newFieldId: string) => {
-                  const newSettings = { ...settings, inputFieldExternalId: newFieldId };
+                  const newSettings = { ...settings, inputFieldCloudVendor: newFieldId };
                   onChange(newSettings);
                 }}
               />
             </Inline>
-            <Inline alignInline="start" space="space.200">
+            {/* <Inline alignInline="start" space="space.200">
               <FieldSelect
                 label="Field for AccountId/SubscriptionId"
                 fieldId={settings.inputFieldAccountId || ""}
@@ -104,7 +104,7 @@ export const SettingsTab = ({
                   onChange(newSettings);
                 }}
               />
-            </Inline>
+            </Inline> */}
           </BlueBox>
 
           <BlueBox title="Target work type (storing DBT and Invoices)">
@@ -168,6 +168,26 @@ export const SettingsTab = ({
                 label="Application Name"
                 onChange={(newObjectAttributeId: string) => {
                   const newSettings = { ...settings, applicationObjectAttributeName: newObjectAttributeId };
+                  onChange(newSettings);
+                }}
+              />
+              <ObjectAttributeSelect
+                objectAttributeId={settings.applicationObjectAttributeChargeback || ""}
+                objectTypeId={settings.applicationObjectTypeId || ""}
+                workSpaceId={settings.workSpaceId || ""}
+                label="Application Chargeback"
+                onChange={(newObjectAttributeId: string) => {
+                  const newSettings = { ...settings, applicationObjectAttributeChargeback: newObjectAttributeId };
+                  onChange(newSettings);
+                }}
+              />
+              <ObjectAttributeSelect
+                objectAttributeId={settings.applicationObjectAttributeVendor || ""}
+                objectTypeId={settings.applicationObjectTypeId || ""}
+                workSpaceId={settings.workSpaceId || ""}
+                label="Application Vendor"
+                onChange={(newObjectAttributeId: string) => {
+                  const newSettings = { ...settings, applicationObjectAttributeVendor: newObjectAttributeId };
                   onChange(newSettings);
                 }}
               />

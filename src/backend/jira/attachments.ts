@@ -1,7 +1,7 @@
 import api, { route } from "@forge/api";
 import { Buffer } from "buffer";
 
-const attachPdfToIssue = async (pdfBytes: Uint8Array, workItemKey: string) => {
+export const attachPdfToIssue = async (pdfBytes: Uint8Array, workItemKey: string) => {
   const boundary = "----ForgeFormBoundary" + Math.random().toString(16).slice(2);
 
   // 3. Construire le body multipart
@@ -33,4 +33,20 @@ const attachPdfToIssue = async (pdfBytes: Uint8Array, workItemKey: string) => {
   return await response.json();
 };
 
-export { attachPdfToIssue };
+export const getAttachment = async (attachmentId: string): Promise<string> => {
+  const response = await api.asApp().requestJira(route`/rest/api/3/attachment/content/${attachmentId}`, {
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      "Failed to fetch attachment data with error: " + response.statusText + " : " + (await response.text())
+    );
+  }
+
+  return await response.text();
+};

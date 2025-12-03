@@ -8,6 +8,8 @@ export interface Settings {
   chargebackAccountObjectTypeId?: string;
   applicationObjectAttributeId?: string;
   applicationObjectAttributeName?: string;
+  applicationObjectAttributeVendor?: string;
+  applicationObjectAttributeChargeback?: string;
   chargebackAccountObjectAttributeName?: string;
   chargebackAccountObjectAttributeChargeCC?: string;
   chargebackAccountObjectAttributeBusinessUnit?: string;
@@ -21,9 +23,7 @@ export interface Settings {
   // Jira Fields
   inputFieldBatchId?: string;
   inputFieldBillingMonth?: string;
-  inputFieldExternalId: string;
-  inputFieldCost?: string;
-  inputFieldAccountId?: string;
+  inputFieldCloudVendor?: string;
 }
 
 export const DefaultSettings: Settings = {
@@ -36,6 +36,8 @@ export const DefaultSettings: Settings = {
   chargebackAccountObjectTypeId: "",
   applicationObjectAttributeId: "",
   applicationObjectAttributeName: "",
+  applicationObjectAttributeChargeback: "",
+  applicationObjectAttributeVendor: "",
   chargebackAccountObjectAttributeName: "",
   chargebackAccountObjectAttributeChargeCC: "",
   chargebackAccountObjectAttributeBusinessUnit: "",
@@ -48,20 +50,21 @@ export const DefaultSettings: Settings = {
   sharedCostsAccounts: "",
   inputFieldBatchId: "",
   inputFieldBillingMonth: "",
-  inputFieldExternalId: "",
-  inputFieldCost: "",
-  inputFieldAccountId: "",
+  inputFieldCloudVendor: "",
 };
 
 export interface Task {
-  ExternalId: string;
-  Key: string;
-  BatchId: string;
-  BillingMonth: string;
   Summary: string;
   Cost: number;
   AccountId: string;
   // Additional fields may be present
+  CloudVendor: string;
   link?: string;
   Seller: string;
+  Error?: string;
+}
+
+export interface AssetsAndAttrs {
+  attrs: Array<{ id: string; name: string }>;
+  assets: Array<any>;
 }
