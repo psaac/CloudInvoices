@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Box, Label, Select, RequiredAsterisk } from "@forge/react";
 import { invoke } from "@forge/bridge";
+import { Option, Options } from "../../types";
 
 export const ObjectTypeSelect = ({
   objectTypeId,
@@ -15,9 +16,9 @@ export const ObjectTypeSelect = ({
   label: string;
   onChange: (newObjectSchemaId: string) => void;
 }) => {
-  const [objectTypes, setObjectTypes] = useState<Array<{ id: string; name: string }>>([]);
+  const [objectTypes, setObjectTypes] = useState<Options>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedObjectType, setSelectedObjectType] = useState<{ value: string; label: string } | null>(null);
+  const [selectedObjectType, setSelectedObjectType] = useState<Option | null>(null);
 
   useEffect(() => {
     const fetchObjectTypes = async ({
@@ -31,15 +32,15 @@ export const ObjectTypeSelect = ({
 
       setLoading(true);
       try {
-        const fetchedObjectTypes = await invoke<Array<{ id: string; name: string }>>("getObjectTypes", {
+        const fetchedObjectTypes = await invoke<Options>("getObjectTypes", {
           workSpaceId,
           objectSchemaId,
         });
         setObjectTypes(fetchedObjectTypes);
 
         if (objectTypeId && objectTypeId !== "") {
-          const exists = fetchedObjectTypes.find((os) => os.id === objectTypeId);
-          if (exists) setSelectedObjectType({ value: exists.id, label: exists.name });
+          const exists = fetchedObjectTypes.find((os) => os.value === objectTypeId);
+          if (exists) setSelectedObjectType(exists);
         }
       } catch (error) {
         console.error("Error searching workSpaces:", error);
@@ -62,7 +63,7 @@ export const ObjectTypeSelect = ({
         id="workSpaceSelect"
         value={selectedObjectType}
         onChange={(option) => onChange(option.value)}
-        options={objectTypes.map((objectType) => ({ label: objectType.name, value: objectType.id }))}
+        options={objectTypes}
         isLoading={loading}
         isSearchable={false}
       />

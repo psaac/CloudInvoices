@@ -1,21 +1,24 @@
 import React, { useEffect, useState } from "react";
 import { Box, Label, Select, RequiredAsterisk } from "@forge/react";
 import { invoke } from "@forge/bridge";
+import { Option, Options } from "../../types";
 
 export const WorkTypeSelect = ({
   spaceId,
   workTypeId,
   onChange,
   label,
+  subTaskType,
 }: {
   spaceId: string;
   workTypeId: string;
   onChange: (newWorkTypeId: string) => void;
   label: string;
+  subTaskType: boolean;
 }) => {
-  const [workTypes, setWorkTypes] = useState<Array<{ id: string; name: string }>>([]);
+  const [workTypes, setWorkTypes] = useState<Options>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedWorkType, setSelectedWorkType] = useState<{ value: string; label: string } | null>(null);
+  const [selectedWorkType, setSelectedWorkType] = useState<Option | null>(null);
 
   useEffect(() => {
     const fetchWorkTypes = async (spaceId: string) => {
@@ -23,8 +26,9 @@ export const WorkTypeSelect = ({
 
       setLoading(true);
       try {
-        const fetchedWorkTypes = await invoke<Array<{ id: string; name: string }>>("getWorkTypes", {
+        const fetchedWorkTypes = await invoke<Options>("getWorkTypes", {
           spaceId,
+          subTaskType,
         });
         setWorkTypes(fetchedWorkTypes);
       } catch (error) {
@@ -37,10 +41,10 @@ export const WorkTypeSelect = ({
     const fetchWorkType = async (workTypeId: string) => {
       setLoading(true);
       try {
-        const workType = await invoke<{ id: string; name: string }>("getWorkType", { workTypeId });
+        const workType = await invoke<Option>("getWorkType", { workTypeId });
         if (workType) {
           setWorkTypes([workType]);
-          setSelectedWorkType({ value: workType.id, label: workType.name });
+          setSelectedWorkType(workType);
         }
       } catch (error) {
         console.error("Error fetching work type:", error);
@@ -62,7 +66,7 @@ export const WorkTypeSelect = ({
         id="workTypeSelect"
         value={selectedWorkType}
         onChange={(option) => onChange(option.value)}
-        options={workTypes.map((workType) => ({ label: workType.name, value: workType.id }))}
+        options={workTypes}
         isSearchable={false}
         isLoading={loading}
       />

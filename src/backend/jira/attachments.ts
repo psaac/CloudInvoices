@@ -1,19 +1,34 @@
 import api, { route } from "@forge/api";
 import { Buffer } from "buffer";
 
-export const attachPdfToIssue = async (pdfBytes: Uint8Array, workItemKey: string) => {
+export const deleteAttachment = async ({ attachmentId }: { attachmentId: string }): Promise<void> => {
+  // Delete JIRA Attachment
+  await api.asApp().requestJira(route`/rest/api/3/attachment/${attachmentId}`, {
+    method: "DELETE",
+  });
+};
+
+export const attachToIssue = async ({
+  fileContent,
+  workItemKey,
+  fileName,
+}: {
+  fileContent: Uint8Array;
+  workItemKey: string;
+  fileName: string;
+}) => {
   const boundary = "----ForgeFormBoundary" + Math.random().toString(16).slice(2);
 
   // 3. Construire le body multipart
   const bodyStart =
     `--${boundary}\r\n` +
-    `Content-Disposition: form-data; name="file"; filename="export-${workItemKey}.pdf"\r\n` +
+    `Content-Disposition: form-data; name="file"; filename="${fileName}"\r\n` +
     `Content-Type: application/pdf\r\n\r\n`;
 
   const bodyEnd = `\r\n--${boundary}--\r\n`;
 
   // Transformer en Buffer (Forge accepte les Uint8Array)
-  const body = new Uint8Array([...Buffer.from(bodyStart, "utf8"), ...pdfBytes, ...Buffer.from(bodyEnd, "utf8")]);
+  const body = new Uint8Array([...Buffer.from(bodyStart, "utf8"), ...fileContent, ...Buffer.from(bodyEnd, "utf8")]);
 
   // 4. Appeler l’API Jira
   const response = await api.asApp().requestJira(route`/rest/api/3/issue/${workItemKey}/attachments`, {

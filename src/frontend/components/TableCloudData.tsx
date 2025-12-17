@@ -1,14 +1,16 @@
 import React from "react";
 import { Stack, Box, Text, Checkbox, Link, Icon, Inline, Tooltip, Heading } from "@forge/react";
 import { CloudData } from "../../backend/CloudData";
-import { LozengeError } from "../utils";
+import { LozengeError } from "../Graphics";
 
 export const CloudDataTable = ({
   data,
   onSelect,
+  disabled,
 }: {
   data: Array<CloudData>;
   onSelect: (cloudData: CloudData, selected: boolean) => void;
+  disabled: boolean;
 }) => {
   return (
     <Stack space="space.100">
@@ -27,7 +29,7 @@ export const CloudDataTable = ({
                 value="default"
                 label={item.Summary}
                 onChange={(event) => onSelect(item, event.target.checked ?? false)}
-                isDisabled={item.Attachments.length === 0}
+                isDisabled={disabled || item.Attachments.length === 0}
               />
               {item.Attachments.length > 0 && (
                 <Tooltip content={item.Attachments.map((att) => att.filename).join(", ")}>

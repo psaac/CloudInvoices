@@ -227,6 +227,7 @@ class PDFHelper {
     textSize = 12,
     items,
     y = this.currentYpos,
+    headerSize = 12,
   }: {
     title?: SizedTextElement;
     width?: number;
@@ -234,6 +235,7 @@ class PDFHelper {
     textSize?: number;
     items: HeaderAndCells[];
     y?: number;
+    headerSize?: number;
   }): void {
     this.goto(y);
 
@@ -241,7 +243,6 @@ class PDFHelper {
 
     if (title !== undefined && title.text !== "")
       this.internalDrawText(title.text, title.color ?? rgb(0, 0, 0), title.size ?? 12, 0, title.bold ?? false);
-    //pdfHelper.drawH1({ text: "Details of Project Expenses", bold: true });
 
     const drawHeader = () => {
       const page = this.currentPage(); // Will create new page if needed and update currentYpos
@@ -251,33 +252,35 @@ class PDFHelper {
         x: this.settings.leftMargin + (point.x ?? 0),
         y: point.y,
         width: width === 0 ? PageSizes.Letter[0] - 2 * this.settings.leftMargin : width,
-        height: textSize * 2,
+        height: headerSize * 2,
         borderOpacity: 0,
         color: headerBgColor,
         opacity: 1,
       });
 
-      this.currentYpos += textSize / 2 + 1;
+      this.currentYpos += headerSize / 2 + 1;
       for (const item of items) {
-        const drawHeader = (headerItem: HeaderElement) => {
+        const drawHeaderItem = (headerItem: HeaderElement) => {
           this.internalDrawText(
             headerItem.text,
             headerItem.color ?? rgb(0, 0, 0),
-            textSize,
+            headerSize,
             (point.x ?? 0) + (headerItem.x ?? 0),
             headerItem.bold,
             true
           );
         };
         // Header
-        drawHeader(item.header);
+        drawHeaderItem(item.header);
       }
-      this.currentYpos -= textSize * 2;
+      this.currentYpos = point.y;
     };
     drawHeader();
 
     // Items
     if (items.length > 0 && items[0] !== undefined && items[0].colItems !== undefined && items[0].colItems.length > 0) {
+      // Reduce top margin below header
+      this.currentYpos -= textSize + 1;
       const itemCount = items[0].colItems.length;
       for (let i = 0; i < itemCount; i++) {
         for (let j = 0; j < items.length; j++) {
@@ -294,8 +297,10 @@ class PDFHelper {
                 singleItem.bold,
                 j !== items.length - 1
               )
-            )
+            ) {
               drawHeader();
+              this.currentYpos -= textSize + 1;
+            }
           }
         }
       }
@@ -355,6 +360,11 @@ class PDFHelper {
     }
 
     return this.pdfDoc.save();
+  }
+
+  public clear(): void {
+    this.pages = [];
+    this.currentYpos = 0;
   }
 }
 

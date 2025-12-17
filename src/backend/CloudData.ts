@@ -1,6 +1,6 @@
 import { Settings } from "../types";
 import { searchWorkItems } from "./jira/search";
-import { Fields } from "./fields";
+import { Fields } from "./Fields";
 import api, { route } from "@forge/api";
 
 export interface CloudVendor {
@@ -39,11 +39,9 @@ export class CloudData {
     settings: Settings,
     baseUrl: string
   ): Promise<Array<CloudData>> => {
-    // console.log(`Fetching cloud data for billing month: ${billingMonth} from ${baseUrl}`);
-    // console.log(`Using settings: ${JSON.stringify(settings)}`);
     const data = await searchWorkItems({
       jql: `project = ${settings.spaceId} AND cf[${Fields.fieldId(
-        settings.inputFieldBillingMonth || ""
+        settings.inputFieldBillingMonth
       )}] ~ ${billingMonth} AND issueType = "${settings.taskWorkTypeId}"`,
       fields: [
         "summary",
@@ -51,23 +49,16 @@ export class CloudData {
         `${settings.inputFieldBatchId}`,
         `${settings.inputFieldBillingMonth}`,
         `${settings.inputFieldCloudVendor}`,
-
-        // `${settings.inputFieldExternalId}`,
-        // `${settings.inputFieldCost}`,
-        // `${settings.inputFieldAccountId}`,
       ],
     });
 
     if (data && data.length > 0) {
       return data.map((workItem: any) => ({
         Key: workItem.key,
-        BatchId: workItem.fields[settings.inputFieldBatchId || ""] || "",
-        BillingMonth: workItem.fields[settings.inputFieldBillingMonth || ""] || "",
-        CloudVendor: { value: workItem.fields[settings.inputFieldCloudVendor || ""].value },
-        // ExternalId: workItem.fields[settings.inputFieldExternalId || ""] || "",
+        BatchId: workItem.fields[settings.inputFieldBatchId] || "",
+        BillingMonth: workItem.fields[settings.inputFieldBillingMonth] || "",
+        CloudVendor: { value: workItem.fields[settings.inputFieldCloudVendor].value },
         Summary: workItem.fields.summary || "",
-        // Cost: workItem.fields[settings.inputFieldCost || ""] || 0,
-        // AccountId: workItem.fields[settings.inputFieldAccountId || ""] || "",
         // Filter json attachments
         Attachments: (workItem.fields.attachment || []).filter((att: any) => att.mimeType === "application/json"),
         Link: `${baseUrl}/browse/${workItem.key}`,

@@ -2,7 +2,7 @@ import React from "react";
 import { Inline, DynamicTable } from "@forge/react";
 import { Task } from "../../types";
 
-export const TableTasks = ({ taskList, title }: { taskList: Task[]; title: string }) => {
+export const TableTasks = ({ taskList, title }: { taskList: Array<Task>; title: string }) => {
   return (
     <Inline space="space.200">
       <DynamicTable

@@ -1,5 +1,4 @@
 import api, { APIResponse, route } from "@forge/api";
-import { log } from "../logger";
 
 interface TransitionParams {
   workItemKey: string;
@@ -29,7 +28,7 @@ const transition = async ({ workItemKey, status }: TransitionParams): Promise<AP
       id: transitionId,
     },
   });
-  log("Transitioning issue:", workItemKey, "to status:", status);
+  // log("Transitioning issue:", workItemKey, "to status:", status);
 
   const response = await api.asApp().requestJira(route`/rest/api/3/issue/${workItemKey}/transitions`, {
     method: "POST",

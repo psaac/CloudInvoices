@@ -6,12 +6,25 @@ modules:
         function: resolver
       render: native
       title: Chargeback Cloud
+      layout: blank
+  jira:adminPage:
+    - key: vantiva-chargeback-admin
+      resource: main-admin
+      resolver:
+        function: resolver
+      render: native
+      title: Chargeback Cloud - Admin
+      useAsConfig: true
+      layout: blank
+
   function:
     - key: resolver
       handler: index.handler
 resources:
   - key: main
     path: src/frontend/index.tsx
+  - key: main-admin
+    path: src/frontend/index-admin.tsx
 app:
   runtime:
     name: nodejs22.x

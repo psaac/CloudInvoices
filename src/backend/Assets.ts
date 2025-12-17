@@ -6,7 +6,7 @@ export class Assets {
     // First load attributes
     const responseAttr = await api
       .asApp()
-      .requestJira(route`jsm/assets/workspace/${settings.workSpaceId || ""}/v1/objecttype/${objectTypeId}/attributes`, {
+      .requestJira(route`jsm/assets/workspace/${settings.workSpaceId}/v1/objecttype/${objectTypeId}/attributes`, {
         method: "GET",
         headers: {
           Accept: "application/json",
@@ -30,7 +30,7 @@ export class Assets {
     while (true) {
       const response = await api
         .asApp()
-        .requestJira(route`jsm/assets/workspace/${settings.workSpaceId || ""}/v1/object/aql?startAt=${startAt}`, {
+        .requestJira(route`jsm/assets/workspace/${settings.workSpaceId}/v1/object/aql?startAt=${startAt}`, {
           method: "POST",
           headers: {
             Accept: "application/json",
@@ -66,10 +66,10 @@ export class Assets {
   };
 
   public static loadChargebackAssets = async (settings: Settings): Promise<AssetsAndAttrs> => {
-    return await this.loadAssets(settings, settings.chargebackAccountObjectTypeId || "");
+    return await this.loadAssets(settings, settings.chargebackAccountObjectTypeId);
   };
 
   public static loadApplicationAssets = async (settings: Settings): Promise<AssetsAndAttrs> => {
-    return await this.loadAssets(settings, settings.applicationObjectTypeId || "");
+    return await this.loadAssets(settings, settings.applicationObjectTypeId);
   };
 }

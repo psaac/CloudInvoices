@@ -1,18 +1,19 @@
 import React, { useEffect, useState } from "react";
 import { Box, Label, Select, RequiredAsterisk } from "@forge/react";
 import { invoke } from "@forge/bridge";
+import { Option, Options } from "../../types";
 
 export const SpaceSelect = ({ spaceId, onChange }: { spaceId: string; onChange: (newSpaceId: string) => void }) => {
-  const [spaces, setSpaces] = useState<Array<{ id: string; name: string }>>([]);
+  const [spaces, setSpaces] = useState<Options>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedSpace, setSelectedSpace] = useState<{ value: string; label: string } | null>(null);
+  const [selectedSpace, setSelectedSpace] = useState<Option | null>(null);
 
   const searchSpaces = async (inputValue: string) => {
     if (loading || inputValue.length < 3) return;
 
     setLoading(true);
     try {
-      const fetchedSpaces = await invoke<Array<{ id: string; name: string }>>("searchSpaces", {
+      const fetchedSpaces = await invoke<Options>("searchSpaces", {
         query: inputValue,
       });
       setSpaces(fetchedSpaces);
@@ -28,10 +29,10 @@ export const SpaceSelect = ({ spaceId, onChange }: { spaceId: string; onChange: 
       if (spaceId && spaceId !== "") {
         setLoading(true);
         try {
-          const space = await invoke<{ id: string; name: string }>("getSpace", { spaceId });
+          const space = await invoke<Option>("getSpace", { spaceId });
           if (space) {
             setSpaces([space]);
-            setSelectedSpace({ value: space.id, label: space.name });
+            setSelectedSpace(space);
           }
         } catch (error) {
           console.error("Error fetching space:", error);
@@ -53,7 +54,7 @@ export const SpaceSelect = ({ spaceId, onChange }: { spaceId: string; onChange: 
         id="spaceSelect"
         value={selectedSpace}
         onChange={(option) => onChange(option.value)}
-        options={spaces.map((space) => ({ label: space.name, value: space.id }))}
+        options={spaces}
         onInputChange={searchSpaces}
         isLoading={loading}
       />

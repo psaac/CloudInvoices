@@ -1,7 +1,6 @@
 import { BaseProcess } from "./BaseProcess";
 import { Invoice, Invoices, VendorCost, AppAccountCost } from "./Invoices";
-import { round2 } from "./utils";
-// import {AppAccountProcess} from"./ApplicationAccounts.ts";
+import { round2 } from "../backend/Utils";
 import { Settings } from "../types";
 
 class DBTProcess extends BaseProcess {
@@ -18,11 +17,6 @@ class DBTProcess extends BaseProcess {
   };
 
   generateDBT = () => {
-    // // Loads json file containing all tasks
-    // const invoices: Invoices = loadWithMaps(
-    //   AppAccountProcess.getFileName("ApplicationAccounts-Filled", this.billingMonth, this.batchId)
-    // );
-
     // Extract vendors
     const sharedCostsByVendor = new Map<string, number>();
     this.invoices.TotalAmount = 0;
@@ -202,10 +196,6 @@ class DBTProcess extends BaseProcess {
     //     this.cloudSecurityTotalCost - allocatedSecurityCost
     //   )}`
     // );
-
-    // saveWithMaps(invoices, AppAccountProcess.getFileName("DBT", this.billingMonth, this.batchId));
-
-    // setProgress(100);
 
     return this.invoices;
   };

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Box, Label, Select, RequiredAsterisk } from "@forge/react";
 import { invoke } from "@forge/bridge";
+import { Option, Options } from "../../types";
 
 export const ObjectSchemaSelect = ({
   objectSchemaId,
@@ -11,9 +12,9 @@ export const ObjectSchemaSelect = ({
   workSpaceId: string;
   onChange: (newObjectSchemaId: string) => void;
 }) => {
-  const [objectsSchemas, setObjectsSchemas] = useState<Array<{ id: string; name: string }>>([]);
+  const [objectsSchemas, setObjectsSchemas] = useState<Options>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedObjectSchema, setSelectedObjectSchema] = useState<{ value: string; label: string } | null>(null);
+  const [selectedObjectSchema, setSelectedObjectSchema] = useState<Option | null>(null);
 
   useEffect(() => {
     const fetchObjectSchemas = async (workSpaceId: string) => {
@@ -21,14 +22,14 @@ export const ObjectSchemaSelect = ({
 
       setLoading(true);
       try {
-        const fetchedObjectSchemas = await invoke<Array<{ id: string; name: string }>>("getObjectSchemas", {
+        const fetchedObjectSchemas = await invoke<Options>("getObjectSchemas", {
           workSpaceId,
         });
         setObjectsSchemas(fetchedObjectSchemas);
 
         if (objectSchemaId && objectSchemaId !== "") {
-          const exists = fetchedObjectSchemas.find((os) => os.id === objectSchemaId);
-          if (exists) setSelectedObjectSchema({ value: exists.id, label: exists.name });
+          const exists = fetchedObjectSchemas.find((os) => os.value === objectSchemaId);
+          if (exists) setSelectedObjectSchema(exists);
         }
       } catch (error) {
         console.error("Error searching workSpaces:", error);
@@ -50,7 +51,7 @@ export const ObjectSchemaSelect = ({
         id="workSpaceSelect"
         value={selectedObjectSchema}
         onChange={(option) => onChange(option.value)}
-        options={objectsSchemas.map((objectSchema) => ({ label: objectSchema.name, value: objectSchema.id }))}
+        options={objectsSchemas}
         isLoading={loading}
         isSearchable={false}
       />

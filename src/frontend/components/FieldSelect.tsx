@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Box, Label, Select, RequiredAsterisk } from "@forge/react";
 import { invoke } from "@forge/bridge";
+import { Option, Options } from "../../types";
 
 export const FieldSelect = ({
   fieldId,
@@ -13,18 +14,18 @@ export const FieldSelect = ({
   label: string;
   onChange: (newFieldId: string) => void;
 }) => {
-  const [fields, setFields] = useState<Array<{ id: string; name: string }>>([]);
+  const [fields, setFields] = useState<Options>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedField, setSelectedField] = useState<{ value: string; label: string } | null>(null);
+  const [selectedField, setSelectedField] = useState<Option | null>(null);
 
   useEffect(() => {
     const fetchField = async ({ fieldId }: { fieldId: string }) => {
       setLoading(true);
       try {
-        const fetchedField = await invoke<{ id: string; name: string }>("getField", {
+        const fetchedField = await invoke<Option>("getField", {
           fieldId,
         });
-        setSelectedField({ value: fetchedField.id, label: fetchedField.name });
+        setSelectedField(fetchedField);
       } catch (error) {
         console.error("Error fetching field:", error);
       } finally {
@@ -39,14 +40,14 @@ export const FieldSelect = ({
 
     setLoading(true);
     try {
-      const fetchedFields = await invoke<Array<{ id: string; name: string }>>("searchFields", {
+      const fetchedFields = await invoke<Options>("searchFields", {
         spaceId,
         query,
       });
       setFields(fetchedFields);
       if (fieldId && fieldId !== "") {
-        const exists = fetchedFields.find((os) => os.id === fieldId);
-        if (exists) setSelectedField({ value: exists.id, label: exists.name });
+        const exists = fetchedFields.find((os) => os.value === fieldId);
+        if (exists) setSelectedField(exists);
       }
     } catch (error) {
       console.error("Error fetching fields:", error);
@@ -65,10 +66,7 @@ export const FieldSelect = ({
         id="fieldSelect"
         value={selectedField}
         onChange={(option) => onChange(option.value)}
-        options={fields.map((field) => ({
-          label: field.name,
-          value: field.id,
-        }))}
+        options={fields}
         isLoading={loading}
         onInputChange={(input) => searchFields({ query: input })}
       />

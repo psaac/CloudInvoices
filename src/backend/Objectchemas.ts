@@ -1,7 +1,8 @@
 import api, { route } from "@forge/api";
+import { Options } from "../types";
 
 export class ObjectSchemas {
-  public static getObjectSchemas = async (workSpaceId: string): Promise<Array<{ id: string; name: string }>> => {
+  public static getObjectSchemas = async (workSpaceId: string): Promise<Options> => {
     const response = await api
       .asApp()
       .requestJira(route`jsm/assets/workspace/${workSpaceId}/v1//objectschema/list?includeCounts=false`, {
@@ -17,8 +18,8 @@ export class ObjectSchemas {
     const data = await response.json();
 
     return data.values.map((objectSchema: { id: string; name: string }) => ({
-      id: objectSchema.id,
-      name: objectSchema.name,
+      value: objectSchema.id,
+      label: objectSchema.name,
     }));
   };
 }

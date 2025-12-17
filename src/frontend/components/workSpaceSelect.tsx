@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Box, Label, Select, RequiredAsterisk } from "@forge/react";
 import { invoke } from "@forge/bridge";
+import { Option, Options } from "../../types";
 
 export const WorkSpaceSelect = ({
   workSpaceId,
@@ -9,9 +10,9 @@ export const WorkSpaceSelect = ({
   workSpaceId: string;
   onChange: (newWorkSpaceId: string) => void;
 }) => {
-  const [workSpaces, setWorkSpaces] = useState<Array<{ id: string; name: string }>>([]);
+  const [workSpaces, setWorkSpaces] = useState<Options>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedWorkSpace, setSelectedWorkSpace] = useState<{ value: string; label: string } | null>(null);
+  const [selectedWorkSpace, setSelectedWorkSpace] = useState<Option | null>(null);
 
   useEffect(() => {
     const fetchWorkSpaces = async () => {
@@ -19,12 +20,12 @@ export const WorkSpaceSelect = ({
 
       setLoading(true);
       try {
-        const fetchedWorkSpaces = await invoke<Array<{ id: string; name: string }>>("getWorkSpaces", {});
+        const fetchedWorkSpaces = await invoke<Options>("getWorkSpaces", {});
         setWorkSpaces(fetchedWorkSpaces);
 
         if (workSpaceId && workSpaceId !== "") {
-          const exists = fetchedWorkSpaces.find((ws) => ws.id === workSpaceId);
-          if (exists) setSelectedWorkSpace({ value: exists.id, label: exists.name });
+          const exists = fetchedWorkSpaces.find((ws) => ws.value === workSpaceId);
+          if (exists) setSelectedWorkSpace(exists);
         }
       } catch (error) {
         console.error("Error searching workSpaces:", error);
@@ -46,7 +47,7 @@ export const WorkSpaceSelect = ({
         id="workSpaceSelect"
         value={selectedWorkSpace}
         onChange={(option) => onChange(option.value)}
-        options={workSpaces.map((workSpace) => ({ label: workSpace.name, value: workSpace.id }))}
+        options={workSpaces}
         isLoading={loading}
         isSearchable={false}
       />

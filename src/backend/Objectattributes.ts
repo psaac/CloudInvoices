@@ -1,10 +1,8 @@
 import api, { route } from "@forge/api";
+import { Options } from "../types";
 
 export class ObjectAttributes {
-  public static getObjectAttributes = async (
-    workSpaceId: string,
-    objectTypeId: string
-  ): Promise<Array<{ id: string; name: string }>> => {
+  public static getObjectAttributes = async (workSpaceId: string, objectTypeId: string): Promise<Options> => {
     const response = await api
       .asApp()
       .requestJira(route`jsm/assets/workspace/${workSpaceId}/v1/objecttype/${objectTypeId}/attributes`, {
@@ -20,8 +18,8 @@ export class ObjectAttributes {
     const data = await response.json();
 
     return data.map((objectAttribute: { id: string; name: string }) => ({
-      id: objectAttribute.id,
-      name: objectAttribute.name,
+      value: objectAttribute.id,
+      label: objectAttribute.name,
     }));
   };
 }

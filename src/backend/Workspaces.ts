@@ -1,7 +1,8 @@
 import api, { route } from "@forge/api";
+import { Options } from "../types";
 
 export class WorkSpaces {
-  public static getWorkSpaces = async (): Promise<Array<{ id: string; name: string }>> => {
+  public static getWorkSpaces = async (): Promise<Options> => {
     const response = await api.asApp().requestJira(route`rest/servicedeskapi/assets/workspace`, {
       method: "GET",
       headers: {
@@ -15,8 +16,8 @@ export class WorkSpaces {
     const data = await response.json();
 
     return data.values.map((workSpace: { workspaceId: string }) => ({
-      id: workSpace.workspaceId,
-      name: workSpace.workspaceId,
+      value: workSpace.workspaceId,
+      label: workSpace.workspaceId,
     }));
   };
 }

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Box, Label, Select, RequiredAsterisk } from "@forge/react";
 import { invoke } from "@forge/bridge";
+import { Option, Options } from "../../types";
 
 export const ObjectAttributeSelect = ({
   objectAttributeId,
@@ -15,9 +16,9 @@ export const ObjectAttributeSelect = ({
   label: string;
   onChange: (newObjectSchemaId: string) => void;
 }) => {
-  const [objectAttributes, setObjectAttributes] = useState<Array<{ id: string; name: string }>>([]);
+  const [objectAttributes, setObjectAttributes] = useState<Options>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedObjectAttribute, setSelectedObjectAttribute] = useState<{ value: string; label: string } | null>(null);
+  const [selectedObjectAttribute, setSelectedObjectAttribute] = useState<Option | null>(null);
 
   useEffect(() => {
     const fetchObjectAttributes = async ({
@@ -31,15 +32,15 @@ export const ObjectAttributeSelect = ({
 
       setLoading(true);
       try {
-        const fetchedObjectAttributes = await invoke<Array<{ id: string; name: string }>>("getObjectAttributes", {
+        const fetchedObjectAttributes = await invoke<Options>("getObjectAttributes", {
           workSpaceId,
           objectTypeId,
         });
         setObjectAttributes(fetchedObjectAttributes);
 
         if (objectAttributeId && objectAttributeId !== "") {
-          const exists = fetchedObjectAttributes.find((os) => os.id === objectAttributeId);
-          if (exists) setSelectedObjectAttribute({ value: exists.id, label: exists.name });
+          const exists = fetchedObjectAttributes.find((os) => os.value === objectAttributeId);
+          if (exists) setSelectedObjectAttribute(exists);
         }
       } catch (error) {
         console.error("Error searching object attributes:", error);
@@ -62,10 +63,7 @@ export const ObjectAttributeSelect = ({
         id="objectAttributeSelect"
         value={selectedObjectAttribute}
         onChange={(option) => onChange(option.value)}
-        options={objectAttributes.map((objectAttribute) => ({
-          label: objectAttribute.name,
-          value: objectAttribute.id,
-        }))}
+        options={objectAttributes}
         isLoading={loading}
         isSearchable={false}
       />
