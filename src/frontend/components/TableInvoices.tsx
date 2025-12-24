@@ -20,7 +20,6 @@ export const TableInvoices = ({ invoices }: { invoices: Invoices }) => {
             {invoices.NetworkSharedCosts.toFixed(2)}
           </Text>
           {Array.from(invoices.Invoices.values()).map((invoice: Invoice) => (
-            // const [show, setShow] = useState<boolean>(false);
             <>
               <Box
                 padding="space.100"
@@ -34,9 +33,12 @@ export const TableInvoices = ({ invoices }: { invoices: Invoices }) => {
                 }}
               >
                 <Inline space="space.100" spread="space-between">
-                  <Text>
-                    Customer: {invoice.Customer} | Amount: {invoice.TotalAmount.toFixed(2)}
-                  </Text>
+                  <Stack>
+                    <Text>
+                      Customer: {invoice.Customer} | Amount: {invoice.TotalAmount.toFixed(2)}
+                    </Text>
+                    <Text>Notify invoice to: {invoice.emailsToNotify.join(", ")}</Text>
+                  </Stack>
                   <Button onClick={() => showInvoiceDetails(invoice)}>
                     <Icon glyph="info" label="" />
                   </Button>

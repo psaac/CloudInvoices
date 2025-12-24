@@ -3,11 +3,13 @@ import { CloudData } from "../backend/CloudData";
 import { AssetsAndAttrs, Settings, Task } from "../types";
 import { BaseProcess } from "./BaseProcess";
 import { Invoices, Invoice, AppAccountCost, VendorCost } from "./Invoices";
+// import { Assets } from "../backend/Assets";
 
 class AppAccountProcess extends BaseProcess {
   applicationAssets: AssetsAndAttrs;
   chargebackAssets: AssetsAndAttrs;
   tasks: Task[];
+  peopleCache: Map<string, any>;
 
   constructor(
     billingMonth: string,
@@ -20,19 +22,29 @@ class AppAccountProcess extends BaseProcess {
     this.tasks = tasks;
     this.applicationAssets = applicationAssets;
     this.chargebackAssets = chargebackAssets;
+    this.peopleCache = new Map<string, any>();
   }
 
   // Helper for asset attributes
-  private getAttributeValue = (asset: any, attrId: string, attributes: any[]) => {
+  private getAttribute = (asset: any, attrId: string, attributes: any[]) => {
     // First find atrribute id by name
     const attrIdFound = attributes.find((attr: any) => attr.id === attrId)?.id;
-    if (!attrIdFound) return "";
+    if (!attrIdFound) return null;
 
-    const attr = asset.attributes.find((attr: any) => attr.id === attrIdFound && attr.objectAttributeValues.length > 0);
+    return asset.attributes.find((attr: any) => attr.id === attrIdFound && attr.objectAttributeValues.length > 0);
+  };
+
+  private getAttributeValue = (asset: any, attrId: string, attributes: any[]) => {
+    const attr = this.getAttribute(asset, attrId, attributes);
     return attr ? attr.objectAttributeValues[0].displayValue : "";
   };
 
-  public fillApplicationAccounts = (): { result: Invoices; taskErrors: Array<Task> } => {
+  private getAttributeValues = (asset: any, attrId: string, attributes: any[]): Array<string> => {
+    const attr = this.getAttribute(asset, attrId, attributes);
+    return attr ? attr.objectAttributeValues.map((val: any) => val.displayValue) : [];
+  };
+
+  public fillApplicationAccounts = async (): Promise<{ result: Invoices; taskErrors: Array<Task> }> => {
     const result: Invoices = {
       BillingMonth: this.billingMonth,
       TotalAmount: 0,
@@ -92,7 +104,8 @@ class AppAccountProcess extends BaseProcess {
       //   filteredEntries.splice(0, filteredEntries.length - 2); // For testing errors
 
       // Skip empty subscription or account id
-      filteredEntries.map((task: Task) => {
+      // filteredEntries.map(async (task: Task) => {
+      for (const task of filteredEntries) {
         const appAccountKey = task.AccountId;
         try {
           // Use cache
@@ -116,6 +129,56 @@ class AppAccountProcess extends BaseProcess {
                   SAPAccount = this.settings.defaultSAPAccount;
                 }
 
+                // Retreive emails to notify from :
+                // - Chargeback owner attribute
+                // - Chargeback Finance controller attribute
+                // - Chargeback Administrator attribute
+                // - Chargeback Alternate Administrator attribute
+                // - Chargeback Additionnal contacts attribute
+                const getEmails = async (attributeId: string) => {
+                  const attr = this.getAttribute(chargebackAsset, attributeId, this.chargebackAssets.attrs);
+                  const values = attr?.objectAttributeValues ?? [];
+
+                  const emailArrays = await Promise.all(
+                    values.map(async (val: any) => {
+                      const referencedObject = val.referencedObject;
+                      if (!referencedObject) return null;
+
+                      // load email from referenced object id
+                      if (!this.peopleCache.has(referencedObject.id)) {
+                        const people = await invoke("getAssetById", {
+                          settings: this.settings,
+                          assetId: referencedObject.id,
+                        });
+                        this.peopleCache.set(referencedObject.id, people);
+                      }
+                      const asset = this.peopleCache.get(referencedObject.id);
+
+                      const emailAttr = asset.attributes.find(
+                        (attr: any) => attr.id === this.settings.peopleObjectAttributeEmail
+                      );
+                      if (emailAttr && emailAttr.objectAttributeValues.length > 0) {
+                        return emailAttr.objectAttributeValues[0].value || null;
+                      }
+                      return null;
+                    })
+                  );
+
+                  return emailArrays.filter((email): email is string => email !== null);
+                };
+                const emailLists = await Promise.all([
+                  getEmails(this.settings.chargebackAccountObjectAttributeOwner),
+                  getEmails(this.settings.chargebackAccountObjectAttributeFinancialController),
+                  getEmails(this.settings.chargebackAccountObjectAttributeAdministrator),
+                  getEmails(this.settings.chargebackAccountObjectAttributeAlternativeAdministrators),
+                  this.getAttributeValues(
+                    chargebackAsset,
+                    this.settings.chargebackAccountObjectAttributeAdditionalContacts,
+                    this.chargebackAssets.attrs
+                  ),
+                ]);
+                const emailsToNotify = [...new Set(emailLists.flat())]; // Unique emails
+                // TODO : load additionnal contacts from a multi value attribute
                 // Find matching Invoice
                 const invoice = result.Invoices.get(chargebackAsset.id) || {
                   CustomerId: chargebackAsset.id,
@@ -141,6 +204,7 @@ class AppAccountProcess extends BaseProcess {
                     this.settings.chargebackAccountObjectAttributeFinancialController,
                     this.chargebackAssets.attrs
                   ),
+                  emailsToNotify,
                   BusinessUnit: this.getAttributeValue(
                     chargebackAsset,
                     this.settings.chargebackAccountObjectAttributeBusinessUnit,
@@ -217,7 +281,7 @@ class AppAccountProcess extends BaseProcess {
           task.Error = `Error processing entry ${appAccountKey} with error : ${error.message}`;
           taskErrors.push(task);
         }
-      });
+      }
 
       return { result, taskErrors };
     } catch (error) {
@@ -247,7 +311,7 @@ export const loadTasks = async (cloudData: CloudData): Promise<Array<Task>> => {
   return tasks;
 };
 
-export const fillApplicationAccounts = ({
+export const fillApplicationAccounts = async ({
   billingMonth,
   applicationAssets,
   chargebackAssets,
@@ -259,7 +323,7 @@ export const fillApplicationAccounts = ({
   chargebackAssets: AssetsAndAttrs;
   tasks: Array<Task>;
   settings: Settings;
-}): { result: Invoices; taskErrors: Array<Task> } => {
+}): Promise<{ result: Invoices; taskErrors: Array<Task> }> => {
   const processor = new AppAccountProcess(billingMonth, applicationAssets, chargebackAssets, tasks, settings);
-  return processor.fillApplicationAccounts();
+  return await processor.fillApplicationAccounts();
 };

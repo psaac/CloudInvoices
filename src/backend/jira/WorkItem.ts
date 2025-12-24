@@ -20,6 +20,7 @@ export const createWorkItem = async ({ issueTypeId, summary, spaceId, fields }: 
       ...fields,
     },
   });
+
   // log(`Create work item with body : ${body}`);
   const responseCreate = await api.asApp().requestJira(route`/rest/api/3/issue`, {
     method: "POST",

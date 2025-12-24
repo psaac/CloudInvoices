@@ -169,7 +169,7 @@ const App = () => {
         updateProgress(index / totalSteps);
       }
 
-      const result = fillApplicationAccounts({
+      const result = await fillApplicationAccounts({
         billingMonth: userInput.billingMonth,
         applicationAssets: fetchedApplicationAssets,
         chargebackAssets: fetchedChargebackAssets,
@@ -386,7 +386,7 @@ const App = () => {
               {currentStep === CurrentStep.AssetsFilled && taskErrors.length > 0 && (
                 <TableTasks taskList={taskErrors} title="Task Errors" />
               )}
-              {currentStep === CurrentStep.AssetsFilled && (
+              {currentStep === CurrentStep.AssetsFilled && taskErrors.length === 0 && (
                 <SectionMessage appearance="success">
                   <Text>All Application Accounts Filled without errors.</Text>
                 </SectionMessage>

@@ -14,6 +14,7 @@ export const TableTasks = ({ taskList, title }: { taskList: Array<Task>; title: 
             { key: "accountId", content: "Application ID", isSortable: true },
             { key: "summary", content: "Description", isSortable: false },
             { key: "cost", content: "Cost", isSortable: true },
+            { key: "error", content: "Error", isSortable: false },
           ],
         }}
         rows={taskList.map((task: Task, index: number) => ({
@@ -24,6 +25,7 @@ export const TableTasks = ({ taskList, title }: { taskList: Array<Task>; title: 
             { content: task.AccountId },
             { content: task.Summary },
             { content: task.Cost },
+            { content: task.Error ? `Error: ${task.Error}` : "" },
           ],
         }))}
         rowsPerPage={100}

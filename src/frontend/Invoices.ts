@@ -27,6 +27,7 @@ export interface Invoice {
   ChargeLE: string;
   Owner: string; // Chargeback Owner
   Controller: string; // Chargeback Finance Controller
+  emailsToNotify: Array<string>; // Emails to notify
   BusinessUnit: string; // Chargeback Business Unit
   Tenant: string; // Chargeback Tenant
   ReportingUnit: string; // Chargeback Reporting Unit

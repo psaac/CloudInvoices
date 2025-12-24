@@ -145,6 +145,11 @@ resolver.define("loadApplicationAssets", async ({ payload }): Promise<AssetsAndA
   return await Assets.loadApplicationAssets(lPayload.settings);
 });
 
+resolver.define("getAssetById", async ({ payload }): Promise<any> => {
+  const lPayload = payload as { settings: Settings; assetId: string };
+  return await Assets.loadAsset(lPayload.settings, lPayload.assetId);
+});
+
 resolver.define("getAttachment", async ({ payload }): Promise<string> => {
   const lPayload = payload as { attachmentId: string };
   return await getAttachment(lPayload.attachmentId);

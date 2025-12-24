@@ -2,6 +2,8 @@ import api, { route } from "@forge/api";
 import { Settings, AssetsAndAttrs } from "../types";
 
 export class Assets {
+  private static Cache: Map<string, any> = new Map();
+
   private static loadAssets = async (settings: Settings, objectTypeId: string): Promise<AssetsAndAttrs> => {
     // First load attributes
     const responseAttr = await api
@@ -71,5 +73,26 @@ export class Assets {
 
   public static loadApplicationAssets = async (settings: Settings): Promise<AssetsAndAttrs> => {
     return await this.loadAssets(settings, settings.applicationObjectTypeId);
+  };
+
+  public static loadAsset = async (settings: Settings, id: string): Promise<any> => {
+    // Check cache first
+    if (!this.Cache.has(id)) {
+      const response = await api
+        .asApp()
+        .requestJira(route`jsm/assets/workspace/${settings.workSpaceId}/v1/object/${id}`, {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+          },
+        });
+      if (!response.ok) {
+        throw new Error(`Failed to fetch asset: ${response.statusText}`);
+      }
+
+      const asset = await response.json();
+      this.Cache.set(id, asset);
+    }
+    return this.Cache.get(id)!;
   };
 }

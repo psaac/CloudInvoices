@@ -132,6 +132,8 @@ const App = () => {
                     }}
                     subTaskType={false}
                   />
+                </Inline>
+                <Inline alignInline="start" space="space.200">
                   <WorkTypeSelect
                     label="Work type for Invoices (sub-task)"
                     spaceId={settings.spaceId}
@@ -148,6 +150,15 @@ const App = () => {
                     spaceId={settings.spaceId}
                     onChange={(newFieldId: string) => {
                       const newSettings = { ...settings, inputFieldChargebackId: newFieldId };
+                      setSettings(newSettings);
+                    }}
+                  />
+                  <FieldSelect
+                    label="Field for emails to notify"
+                    fieldId={settings.inputFieldEmailsToNotify}
+                    spaceId={settings.spaceId}
+                    onChange={(newFieldId: string) => {
+                      const newSettings = { ...settings, inputFieldEmailsToNotify: newFieldId };
                       setSettings(newSettings);
                     }}
                   />
@@ -350,20 +361,75 @@ const App = () => {
                       setSettings(newSettings);
                     }}
                   />
+                  <ObjectAttributeSelect
+                    objectAttributeId={settings.chargebackAccountObjectAttributeAdministrator}
+                    objectTypeId={settings.chargebackAccountObjectTypeId}
+                    workSpaceId={settings.workSpaceId}
+                    label="Administrator"
+                    onChange={(newObjectAttributeId: string) => {
+                      const newSettings = {
+                        ...settings,
+                        chargebackAccountObjectAttributeAdministrator: newObjectAttributeId,
+                      };
+                      setSettings(newSettings);
+                    }}
+                  />
+                  <ObjectAttributeSelect
+                    objectAttributeId={settings.chargebackAccountObjectAttributeAlternativeAdministrators}
+                    objectTypeId={settings.chargebackAccountObjectTypeId}
+                    workSpaceId={settings.workSpaceId}
+                    label="Alternate Administrator(s)"
+                    onChange={(newObjectAttributeId: string) => {
+                      const newSettings = {
+                        ...settings,
+                        chargebackAccountObjectAttributeAlternativeAdministrators: newObjectAttributeId,
+                      };
+                      setSettings(newSettings);
+                    }}
+                  />
+                  <ObjectAttributeSelect
+                    objectAttributeId={settings.chargebackAccountObjectAttributeAdditionalContacts}
+                    objectTypeId={settings.chargebackAccountObjectTypeId}
+                    workSpaceId={settings.workSpaceId}
+                    label="Additional Contacts"
+                    onChange={(newObjectAttributeId: string) => {
+                      const newSettings = {
+                        ...settings,
+                        chargebackAccountObjectAttributeAdditionalContacts: newObjectAttributeId,
+                      };
+                      setSettings(newSettings);
+                    }}
+                  />
                 </Inline>
               </YellowBox>
-              {/* <YellowBox title="Vendor Asset">
-            <ObjectTypeSelect
-              objectTypeId={settings.vendorObjectTypeId}
-              objectSchemaId={settings.objectSchemaId}
-              workSpaceId={settings.workSpaceId}
-              label="Object type for Vendor"
-              onChange={(newObjectTypeId: string) => {
-                const newSettings = { ...settings, vendorObjectTypeId: newObjectTypeId };
-                onChangeSettings(newSettings);
-              }}
-            />
-          </YellowBox>
+              <YellowBox title="People Asset">
+                <ObjectTypeSelect
+                  objectTypeId={settings.peopleObjectTypeId}
+                  objectSchemaId={settings.objectSchemaId}
+                  workSpaceId={settings.workSpaceId}
+                  label="Object type for People"
+                  onChange={(newObjectTypeId: string) => {
+                    const newSettings = { ...settings, peopleObjectTypeId: newObjectTypeId };
+                    setSettings(newSettings);
+                  }}
+                />
+                <Inline alignInline="start" space="space.200">
+                  <ObjectAttributeSelect
+                    objectAttributeId={settings.peopleObjectAttributeEmail}
+                    objectTypeId={settings.peopleObjectTypeId}
+                    workSpaceId={settings.workSpaceId}
+                    label="Email Attribute"
+                    onChange={(newObjectAttributeId: string) => {
+                      const newSettings = {
+                        ...settings,
+                        peopleObjectAttributeEmail: newObjectAttributeId,
+                      };
+                      setSettings(newSettings);
+                    }}
+                  />
+                </Inline>
+              </YellowBox>
+              {/*
           <YellowBox title="Tenant Asset">
             <ObjectTypeSelect
               objectTypeId={settings.tenantObjectTypeId}

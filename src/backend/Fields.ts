@@ -18,8 +18,8 @@ export class Fields {
     const data = await response.json();
 
     return data.values.map((field: { id: string; name: string }) => ({
-      id: field.id,
-      name: field.name,
+      value: field.id,
+      label: field.name,
     }));
   };
 

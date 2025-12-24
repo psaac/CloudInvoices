@@ -32,10 +32,15 @@ export interface Settings {
   chargebackAccountObjectAttributeTenant: string;
   chargebackAccountObjectAttributeOwner: string;
   chargebackAccountObjectAttributeFinancialController: string;
+  chargebackAccountObjectAttributeAdministrator: string;
+  chargebackAccountObjectAttributeAlternativeAdministrators: string;
+  chargebackAccountObjectAttributeAdditionalContacts: string;
   chargebackAccountObjectAttributeReportingUnit: string;
   chargebackAccountObjectAttributeSAPAccount: string;
   // vendorObjectTypeId: string;
   // tenantObjectTypeId: string;
+  peopleObjectTypeId: string;
+  peopleObjectAttributeEmail: string;
   sharedCostsAccounts: string;
   defaultChargeLE: string;
   defaultSAPAccount: string;
@@ -47,6 +52,7 @@ export interface Settings {
   inputFieldBillingMonth: string;
   inputFieldCloudVendor: string;
   inputFieldChargebackId: string;
+  inputFieldEmailsToNotify: string;
 }
 
 export const DefaultSettings: Settings = {
@@ -71,10 +77,15 @@ export const DefaultSettings: Settings = {
   chargebackAccountObjectAttributeTenant: "",
   chargebackAccountObjectAttributeOwner: "",
   chargebackAccountObjectAttributeFinancialController: "",
+  chargebackAccountObjectAttributeAdministrator: "",
+  chargebackAccountObjectAttributeAlternativeAdministrators: "",
+  chargebackAccountObjectAttributeAdditionalContacts: "",
   chargebackAccountObjectAttributeReportingUnit: "",
   chargebackAccountObjectAttributeSAPAccount: "",
   // vendorObjectTypeId: "",
   // tenantObjectTypeId: "",
+  peopleObjectTypeId: "",
+  peopleObjectAttributeEmail: "",
   sharedCostsAccounts: "",
   defaultChargeLE: "L323 (PS4)",
   defaultSAPAccount: "6226110000",
@@ -85,6 +96,7 @@ export const DefaultSettings: Settings = {
   inputFieldBillingMonth: "",
   inputFieldCloudVendor: "",
   inputFieldChargebackId: "",
+  inputFieldEmailsToNotify: "",
 };
 
 export const validSettings = (settings: Settings): boolean => {

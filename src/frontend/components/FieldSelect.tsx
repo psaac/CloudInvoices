@@ -45,6 +45,7 @@ export const FieldSelect = ({
         query,
       });
       setFields(fetchedFields);
+
       if (fieldId && fieldId !== "") {
         const exists = fetchedFields.find((os) => os.value === fieldId);
         if (exists) setSelectedField(exists);

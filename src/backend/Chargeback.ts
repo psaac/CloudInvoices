@@ -116,6 +116,19 @@ export class Chargeback {
     summary: string;
     invoice: Invoice;
   }): Promise<string> => {
+    const notifyEmailsADF = {
+      version: 1,
+      type: "doc",
+      content: invoice.emailsToNotify.map((email) => ({
+        type: "paragraph",
+        content: [
+          {
+            type: "text",
+            text: email,
+          },
+        ],
+      })),
+    };
     // Create JIRA Work item to store Invoice (as sub-task)
     const response = await createWorkItem({
       issueTypeId: settings.invoiceWorkTypeId,
@@ -126,6 +139,8 @@ export class Chargeback {
           key: parentWorkItemKey,
         },
         [settings.inputFieldChargebackId]: invoice.ChargebackId ?? "0",
+        [settings.inputFieldBillingMonth]: invoice.BillingMonth,
+        [settings.inputFieldEmailsToNotify]: notifyEmailsADF,
       },
     });
     const subTaskKey = response.key;
