@@ -60,7 +60,9 @@ export class CloudData {
         CloudVendor: { value: workItem.fields[settings.inputFieldCloudVendor].value },
         Summary: workItem.fields.summary || "",
         // Filter json attachments
-        Attachments: (workItem.fields.attachment || []).filter((att: any) => att.mimeType === "application/json"),
+        Attachments: (workItem.fields.attachment || []).filter(
+          (att: any) => att.mimeType === "application/json" || att.mimeType === "text/plain"
+        ),
         Link: `${baseUrl}/browse/${workItem.key}`,
       }));
     }

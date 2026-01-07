@@ -1,14 +1,14 @@
 import api, { route } from "@forge/api";
-import { Settings, AssetsAndAttrs } from "../types";
+import { AssetsAndAttrs, Option, Options } from "../types";
 
 export class Assets {
-  private static Cache: Map<string, any> = new Map();
+  // private static Cache: Map<string, any> = new Map();
 
-  private static loadAssets = async (settings: Settings, objectTypeId: string): Promise<AssetsAndAttrs> => {
+  public static loadAssets = async (workSpaceId: string, objectTypeId: string): Promise<AssetsAndAttrs> => {
     // First load attributes
     const responseAttr = await api
       .asApp()
-      .requestJira(route`jsm/assets/workspace/${settings.workSpaceId}/v1/objecttype/${objectTypeId}/attributes`, {
+      .requestJira(route`jsm/assets/workspace/${workSpaceId}/v1/objecttype/${objectTypeId}/attributes`, {
         method: "GET",
         headers: {
           Accept: "application/json",
@@ -32,7 +32,7 @@ export class Assets {
     while (true) {
       const response = await api
         .asApp()
-        .requestJira(route`jsm/assets/workspace/${settings.workSpaceId}/v1/object/aql?startAt=${startAt}`, {
+        .requestJira(route`jsm/assets/workspace/${workSpaceId}/v1/object/aql?startAt=${startAt}`, {
           method: "POST",
           headers: {
             Accept: "application/json",
@@ -67,32 +67,41 @@ export class Assets {
     };
   };
 
-  public static loadChargebackAssets = async (settings: Settings): Promise<AssetsAndAttrs> => {
-    return await this.loadAssets(settings, settings.chargebackAccountObjectTypeId);
-  };
-
-  public static loadApplicationAssets = async (settings: Settings): Promise<AssetsAndAttrs> => {
-    return await this.loadAssets(settings, settings.applicationObjectTypeId);
-  };
-
-  public static loadAsset = async (settings: Settings, id: string): Promise<any> => {
-    // Check cache first
-    if (!this.Cache.has(id)) {
-      const response = await api
-        .asApp()
-        .requestJira(route`jsm/assets/workspace/${settings.workSpaceId}/v1/object/${id}`, {
-          method: "GET",
-          headers: {
-            Accept: "application/json",
-          },
-        });
-      if (!response.ok) {
-        throw new Error(`Failed to fetch asset: ${response.statusText}`);
-      }
-
-      const asset = await response.json();
-      this.Cache.set(id, asset);
+  public static loadAsset = async (workSpaceId: string, id: string): Promise<any> => {
+    const response = await api.asApp().requestJira(route`jsm/assets/workspace/${workSpaceId}/v1/object/${id}`, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch asset: ${response.statusText}`);
     }
-    return this.Cache.get(id)!;
+
+    return await response.json();
+  };
+
+  public static getAsset = async (workSpaceId: string, id: string): Promise<Option> => {
+    const json = await Assets.loadAsset(workSpaceId, id);
+    return { value: json.id, label: json.label };
+  };
+
+  public static searchAssets = async (workSpaceId: string, objectTypeId: string, query: string): Promise<Options> => {
+    const response = await api.asApp().requestJira(route`jsm/assets/workspace/${workSpaceId}/v1/object/aql`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        qlQuery: `objectTypeId = "${objectTypeId}" AND label like "${query}"`,
+      }),
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to search assets: ${response.statusText}`);
+    }
+
+    const json = await response.json();
+    return json.values.map((asset: any) => ({ value: asset.id, label: asset.label }));
   };
 }

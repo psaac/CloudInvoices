@@ -118,6 +118,20 @@ resolver.define("getField", async ({ payload }): Promise<Option> => {
   return await Fields.getField(lPayload.fieldId);
 });
 
+resolver.define("searchAssets", async ({ payload }): Promise<Options> => {
+  const lPayload = payload as {
+    workSpaceId: string;
+    objectTypeId: string;
+    query: string;
+  };
+  return await Assets.searchAssets(lPayload.workSpaceId, lPayload.objectTypeId, lPayload.query);
+});
+
+resolver.define("getAsset", async ({ payload }): Promise<Option> => {
+  const lPayload = payload as { workSpaceId: string; assetId: string };
+  return await Assets.getAsset(lPayload.workSpaceId, lPayload.assetId);
+});
+
 // Chargeback process
 // Get all work items with specific batch id
 resolver.define("getCloudDataByBillingMonth", async ({ payload }): Promise<Array<CloudData>> => {
@@ -135,19 +149,14 @@ resolver.define("getInvoiceLinesByBillingMonth", async ({ payload }): Promise<Ar
   return await Chargeback.getInvoiceLinesByBillingMonth(lPayload.billingMonth, lPayload.settings, lPayload.baseUrl);
 });
 
-resolver.define("loadChargebackAssets", async ({ payload }): Promise<AssetsAndAttrs> => {
-  const lPayload = payload as { settings: Settings };
-  return await Assets.loadChargebackAssets(lPayload.settings);
-});
-
-resolver.define("loadApplicationAssets", async ({ payload }): Promise<AssetsAndAttrs> => {
-  const lPayload = payload as { settings: Settings };
-  return await Assets.loadApplicationAssets(lPayload.settings);
+resolver.define("loadAssets", async ({ payload }): Promise<AssetsAndAttrs> => {
+  const lPayload = payload as { workSpaceId: string; objectTypeId: string };
+  return await Assets.loadAssets(lPayload.workSpaceId, lPayload.objectTypeId);
 });
 
 resolver.define("getAssetById", async ({ payload }): Promise<any> => {
-  const lPayload = payload as { settings: Settings; assetId: string };
-  return await Assets.loadAsset(lPayload.settings, lPayload.assetId);
+  const lPayload = payload as { workSpaceId: string; assetId: string };
+  return await Assets.loadAsset(lPayload.workSpaceId, lPayload.assetId);
 });
 
 resolver.define("getAttachment", async ({ payload }): Promise<string> => {
@@ -177,12 +186,28 @@ resolver.define("deleteAttachment", async ({ payload }) => {
 });
 
 resolver.define("createInvoiceSubItem", async ({ payload }) => {
-  const lPayload = payload as { settings: Settings; parentWorkItemKey: string; summary: string; invoice: string };
+  const lPayload = payload as {
+    settings: Settings;
+    parentWorkItemKey: string;
+    summary: string;
+    invoice: string;
+    defaultLegalEntityCode: string;
+    defaultLegalEntitySystem: string;
+  };
   return await Chargeback.createInvoiceSubItem({
     settings: lPayload.settings,
     parentWorkItemKey: lPayload.parentWorkItemKey,
     summary: lPayload.summary,
     invoice: loadWithMapsFromRaw(lPayload.invoice),
+    defaultLegalEntityCode: lPayload.defaultLegalEntityCode,
+    defaultLegalEntitySystem: lPayload.defaultLegalEntitySystem,
+  });
+});
+
+resolver.define("sendInvoicesAndIDocs", async ({ payload }) => {
+  const lPayload = payload as { mainChargebackOutKey: string };
+  return await Chargeback.sendInvoicesAndIDocs({
+    mainChargebackOutKey: lPayload.mainChargebackOutKey,
   });
 });
 

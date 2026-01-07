@@ -9,6 +9,7 @@ import { CellElement, DEFAULT_PDF_SETTINGS, HeaderAndCells, PDFElementType, PDFH
 import { rgb } from "pdf-lib";
 import { VANTIVA_LOGO } from "../backend/img/vantivaLogo";
 import { InvoiceIDocLine } from "./InvoiceIDocLine";
+import { transition } from "./jira/transition";
 
 export class Chargeback {
   public static getInvoiceLinesByBillingMonth = async (
@@ -18,12 +19,12 @@ export class Chargeback {
   ): Promise<Array<InvoiceLine>> => {
     const result: Array<InvoiceLine> = [];
 
-    // Search for existing invoice sub-tasks
+    // Search for existing invoice & sub-tasks
     const existingItems = await searchWorkItems({
       jql: `project = ${settings.spaceId} AND cf[${Fields.fieldId(
         settings.inputFieldBillingMonth
       )}] ~ ${billingMonth} AND issueType = ${settings.targetWorkTypeId}`,
-      fields: ["summary", "sub-tasks"],
+      fields: ["summary", "sub-tasks", "status"],
     });
 
     // Should be only one here
@@ -33,11 +34,12 @@ export class Chargeback {
         Summary: item.fields.summary || "",
         Key: item.key,
         Link: `${baseUrl}/browse/${item.key}`,
+        Status: item.fields.status?.name || "Unknown",
       });
 
       const existingSubItems = await searchWorkItems({
         jql: `project = ${settings.spaceId} AND parent = ${item.key}`,
-        fields: ["summary", settings.inputFieldChargebackId],
+        fields: ["summary", settings.inputFieldChargebackId, "status"],
       });
       for (const subItem of existingSubItems) {
         result.push({
@@ -45,6 +47,7 @@ export class Chargeback {
           Summary: subItem.fields.summary || "",
           Key: subItem.key,
           Link: `${baseUrl}/browse/${subItem.key}`,
+          Status: subItem.fields.status?.name || "Unknown",
         });
       }
     }
@@ -110,11 +113,15 @@ export class Chargeback {
     parentWorkItemKey,
     summary,
     invoice,
+    defaultLegalEntityCode,
+    defaultLegalEntitySystem,
   }: {
     settings: Settings;
     parentWorkItemKey: string;
     summary: string;
     invoice: Invoice;
+    defaultLegalEntityCode: string;
+    defaultLegalEntitySystem: string;
   }): Promise<string> => {
     const notifyEmailsADF = {
       version: 1,
@@ -234,7 +241,28 @@ export class Chargeback {
       },
     ]);
 
+    const makeLines = (text: string): Array<string> => {
+      const maxCharactersPerLine = 50;
+      const wrappedLines: Array<string> = [];
+      let currentLine = "";
+
+      for (const word of text.split(" ")) {
+        if ((currentLine + word).length <= maxCharactersPerLine) {
+          currentLine += (currentLine ? " " : "") + word;
+        } else {
+          wrappedLines.push(currentLine);
+          currentLine = word;
+        }
+      }
+      if (currentLine) {
+        wrappedLines.push(currentLine);
+      }
+
+      return wrappedLines;
+    };
+
     // Sold To / Remit To
+    const soldToLines = makeLines(invoice.SoldToAddress);
     pdfHelper.drawRectangleAndText({
       point: { x: 0, y: 560 },
       width: 250,
@@ -243,17 +271,22 @@ export class Chargeback {
       textSize: 8,
       textElements: [
         {
-          text: `SOLD TO\nCustomer:\nAddress:\n\n\nProject:\nCost Center:\nOwner:\nController:`,
+          text: `SOLD TO\nCustomer:\nAddress:${"\n".repeat(
+            soldToLines.length
+          )}\nProject:\nCost Center:\nOwner:\nController:`,
           point: { x: 5, y: 15 },
           bold: true,
         },
         {
-          text: `\nCL${invoice.ReportingUnit} - Vantiva USA Shared Services Inc\n4855 Peachtree Industrial Boulevard Suite 200 Norcross,\nGA 30092 United States of America\n${invoice.Customer}\n${invoice.CostCenter}\n${invoice.Owner}\n${invoice.Controller}`,
+          text: `\nCL${invoice.SoldToCode} - ${invoice.SoldToName}\n${soldToLines.join("\n")}\n${
+            invoice.SoldToCountry
+          }\n${invoice.Customer}\n${invoice.CostCenter}\n${invoice.Owner}\n${invoice.Controller}`,
           point: { x: 55, y: 15 },
         },
       ],
     });
 
+    const remitToLines = makeLines(invoice.RemitToAddress);
     pdfHelper.drawRectangleAndText({
       point: { x: 260, y: 560 },
       width: 250,
@@ -262,12 +295,14 @@ export class Chargeback {
       textSize: 8,
       textElements: [
         {
-          text: `REMIT\nTO\nCustomer:\nAddress:`,
+          text: `REMIT TO\nCustomer:\nAddress:`,
           point: { x: 5, y: 15 },
           bold: true,
         },
         {
-          text: `\n\nE3211 - Vantiva USA Shared Services Inc.\n4855 Peachtree Industrial Boulevard Suite 200 Norcross,\nGA 30092 United States\ndd38b7111b121100763d91eebc0713f5`,
+          text: `\n${invoice.RemitToCode} - ${invoice.RemitToName}\n${remitToLines.join("\n")}\n${
+            invoice.RemitToCountry
+          }\ndd38b7111b121100763d91eebc0713f5`,
           point: { x: 55, y: 15 },
         },
       ],
@@ -379,25 +414,27 @@ export class Chargeback {
 
     // Generate IDocs files
     // Always generate 01 file with defaultChargeLE
-    const directBill = invoice.ChargeLE === settings.defaultChargeLE;
-    const infos01 = InvoiceIDocLine.getSystemAndCompany(settings.defaultChargeLE);
+    const defaultChargeLE = `${defaultLegalEntityCode} (${defaultLegalEntitySystem})`;
+    const invoiceChargeLE = `${invoice.LegalEntityCode} (${invoice.LegalEntitySystem})`;
+    const directBill = invoiceChargeLE === defaultChargeLE;
+    // const infos01 = InvoiceIDocLine.getSystemAndCompany(settings.defaultChargeLE);
     const iDoc01Lines = [
       InvoiceIDocLine.getHeader(),
       InvoiceIDocLine.getCreditLine(
         invoice,
-        infos01.system,
-        infos01.company,
-        invoice.ChargeLE,
+        defaultLegalEntitySystem,
+        defaultLegalEntityCode,
+        invoiceChargeLE,
         settings.defaultCostCenter,
         ""
       ),
       InvoiceIDocLine.getDebitLine(
         invoice,
-        infos01.system,
-        infos01.company,
-        invoice.ChargeLE,
+        defaultLegalEntitySystem,
+        defaultLegalEntityCode,
+        invoiceChargeLE,
         directBill ? invoice.CostCenter : "",
-        !directBill ? `CL${invoice.ReportingUnit}` : ""
+        !directBill ? `CL${invoice.SoldToCode}` : ""
       ),
     ];
     const text01 = iDoc01Lines.map((line) => line.join("\t")).join("\n");
@@ -410,23 +447,24 @@ export class Chargeback {
     });
 
     if (!directBill) {
-      const infos02 = InvoiceIDocLine.getSystemAndCompany(invoice.ChargeLE);
+      // const infos02 = InvoiceIDocLine.getSystemAndCompany(invoice.ChargeLE);
       const iDoc02Lines = [
         InvoiceIDocLine.getHeader(),
         InvoiceIDocLine.getCreditLine(
           invoice,
-          infos02.system,
-          infos02.company,
-          settings.defaultChargeLE,
+          invoice.LegalEntitySystem,
+          invoice.LegalEntityCode,
+          defaultChargeLE,
           "",
-          settings.defaultVendor,
+          //settings.defaultVendor,
+          `VL${invoice.RemitToCode}`,
           "02"
         ),
         InvoiceIDocLine.getDebitLine(
           invoice,
-          infos02.system,
-          infos02.company,
-          settings.defaultChargeLE,
+          invoice.LegalEntitySystem,
+          invoice.LegalEntityCode,
+          defaultChargeLE,
           invoice.CostCenter,
           "",
           "02"
@@ -442,5 +480,17 @@ export class Chargeback {
       });
     }
     return subTaskKey;
+  };
+
+  public static sendInvoicesAndIDocs = async ({
+    mainChargebackOutKey,
+  }: {
+    mainChargebackOutKey: string;
+  }): Promise<void> => {
+    // Just transition work item
+    await transition({
+      workItemKey: mainChargebackOutKey,
+      status: "In Progress",
+    });
   };
 }

@@ -3,6 +3,7 @@ export interface InvoiceLine {
   Summary: string;
   Key: string;
   Link: string;
+  Status: string;
 }
 
 export const getChargebackIdStr = (prefix: string, chargebackId: number): string => {

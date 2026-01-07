@@ -13,7 +13,6 @@ import ForgeReconciler, {
   ProgressBar,
   RequiredAsterisk,
   Spinner,
-  Popup,
 } from "@forge/react";
 import { GlobalProvider, GlobalContext, GlobalContextType } from "./globalcontext";
 import { invoke } from "@forge/bridge";
@@ -36,8 +35,17 @@ enum CurrentStep {
   AssetsFilled = 2,
   DBTComputed = 3,
   InvoicesGenerated = 4,
+  SendingInvoices = 5,
+  InvoicesSent = 6,
 }
 
+const emptyInvoices: Invoices = {
+  BillingMonth: "",
+  TotalAmount: 0,
+  NetworkSharedCosts: 0,
+  TotalByVendor: new Map<string, number>(), // Key is Vendor Name
+  Invoices: new Map<string, Invoice>(),
+};
 const App = () => {
   const globalContext: GlobalContextType | null = useContext(GlobalContext);
   const [currentStep, setCurrentStep] = useState<CurrentStep>(CurrentStep.None);
@@ -45,13 +53,7 @@ const App = () => {
   const [cloudVendors, setCloudVendors] = useState<Array<CloudVendor>>([]);
   const [cloudData, setCloudData] = useState<Array<CloudData>>([]);
   const [selectedCloudData, setSelectedCloudData] = useState<Array<CloudData>>([]);
-  const [invoices, setInvoices] = useState<Invoices>({
-    BillingMonth: "",
-    TotalAmount: 0,
-    NetworkSharedCosts: 0,
-    TotalByVendor: new Map<string, number>(), // Key is Vendor Name
-    Invoices: new Map<string, Invoice>(),
-  });
+  const [invoices, setInvoices] = useState<Invoices>(emptyInvoices);
   const [taskErrors, setTaskErrors] = useState<Array<Task>>([]);
   const [invoiceLinesData, setInvoiceLinesData] = useState<Array<InvoiceLine>>([]);
   const [loading, setLoading] = useState(false);
@@ -59,7 +61,6 @@ const App = () => {
   const [progressIndeterminate, setProgressIndeterminate] = useState(true);
   const [progressSuccess, setProgressSuccess] = useState<"default" | "success">("default");
   const [currentProgressText, setCurrentProgressText] = useState("");
-  const [popupOpen, setPopupOpen] = useState(false);
 
   useEffect(() => {
     const fetchUserInput = async () => {
@@ -105,10 +106,11 @@ const App = () => {
 
     if (progress === 2) {
       setCurrentProgressText("Completed.");
-      const timer = setTimeout(() => {
-        setProgress(-1);
-        timer && clearTimeout(timer);
-      }, 3000);
+      // To hide after delay the progress bar (not used for now)
+      // const timer = setTimeout(() => {
+      //   setProgress(-1);
+      //   timer && clearTimeout(timer);
+      // }, 3000);
     }
   };
 
@@ -136,8 +138,17 @@ const App = () => {
         baseUrl: globalContext?.apiData.serverInfos.baseUrl,
       });
       setInvoiceLinesData(existingInvoiceLines);
+      // Based on first invoice line status, set current step
+      if (existingInvoiceLines.length > 0) {
+        if (existingInvoiceLines.every((line) => line.Status === "Done" || line.Status === "Closed"))
+          setCurrentStep(CurrentStep.InvoicesSent);
+        else if (existingInvoiceLines[0]?.Status === "In Progress") setCurrentStep(CurrentStep.SendingInvoices);
+        else setCurrentStep(CurrentStep.InvoicesGenerated);
+      } else {
+        setCurrentStep(CurrentStep.DataFetched);
+      }
 
-      setCurrentStep(CurrentStep.DataFetched);
+      // setCurrentStep(CurrentStep.DataFetched);
       updateProgress(2);
     } catch (error) {
       console.error("JIRA API Error :", error);
@@ -148,20 +159,41 @@ const App = () => {
     initProgress("Loading assets...");
     setTaskErrors([]);
     try {
-      const fetchedChargebackAssets = await invoke<AssetsAndAttrs>("loadChargebackAssets", {
-        settings: globalContext?.apiData.settings,
-      });
+      const totalSteps = selectedCloudData.length + 4;
 
-      const fetchedApplicationAssets = await invoke<AssetsAndAttrs>("loadApplicationAssets", {
-        settings: globalContext?.apiData.settings,
+      const fetchedChargebackAssets = await invoke<AssetsAndAttrs>("loadAssets", {
+        workSpaceId: globalContext?.apiData.settings.workSpaceId,
+        objectTypeId: globalContext?.apiData.settings.chargebackAccountObjectTypeId,
       });
-
-      const totalSteps = selectedCloudData.length + 1;
       updateProgress(1 / totalSteps);
+
+      const fetchedApplicationAssets = await invoke<AssetsAndAttrs>("loadAssets", {
+        workSpaceId: globalContext?.apiData.settings.workSpaceId,
+        objectTypeId: globalContext?.apiData.settings.applicationObjectTypeId,
+      });
+      updateProgress(2 / totalSteps);
+
+      const fetchedReportingUnitsAssets = await invoke<AssetsAndAttrs>("loadAssets", {
+        workSpaceId: globalContext?.apiData.settings.workSpaceId,
+        objectTypeId: globalContext?.apiData.settings.reportingUnitObjectTypeId,
+      });
+      updateProgress(3 / totalSteps);
+
+      const fetchedLegalEntitiesAssets = await invoke<AssetsAndAttrs>("loadAssets", {
+        workSpaceId: globalContext?.apiData.settings.workSpaceId,
+        objectTypeId: globalContext?.apiData.settings.legalEntitiesObjectTypeId,
+      });
+      updateProgress(4 / totalSteps);
+
+      // Get "Remit To" Reporting unit
+      const remitToAsset = await invoke<any>("getAssetById", {
+        workSpaceId: globalContext?.apiData.settings.workSpaceId,
+        assetId: globalContext?.apiData.settings.remitToAssetId,
+      });
 
       // For all selected cloud data, fill application and chargeback accounts
       const tasks: Array<Task> = [];
-      let index = 1;
+      let index = 4;
       for (const cloudDataItem of selectedCloudData) {
         setCurrentProgressText(`Filling accounts for ${cloudDataItem.CloudVendor.value}...`);
         tasks.push(...(await loadTasks(cloudDataItem)));
@@ -173,6 +205,9 @@ const App = () => {
         billingMonth: userInput.billingMonth,
         applicationAssets: fetchedApplicationAssets,
         chargebackAssets: fetchedChargebackAssets,
+        reportingUnitsAssets: fetchedReportingUnitsAssets,
+        legalEntityAssets: fetchedLegalEntitiesAssets,
+        remitToAsset,
         tasks,
         settings: globalContext?.apiData.settings ?? DefaultSettings,
       });
@@ -266,87 +301,84 @@ const App = () => {
                   1 Fetch data
                 </Button>
               </Box>
-              <Box padding="space.100">
-                <Button
-                  appearance="primary"
-                  onClick={() => fetchAssetsAndFillApplicationAccounts()}
-                  isDisabled={
-                    loading ||
-                    selectedCloudData.length === 0 ||
-                    currentStep < CurrentStep.DataFetched ||
-                    !allVendorsSelected(selectedCloudData, cloudVendors)
-                  }
-                >
-                  2 Fill application/chargeback accounts
-                </Button>
-              </Box>
-              <Box padding="space.100">
-                <Button
-                  appearance="primary"
-                  onClick={() => {
-                    initProgress("Computing DBT...");
-                    try {
-                      const processedInvoices = generateDBT(
-                        globalContext?.apiData.settings ?? DefaultSettings,
-                        invoices,
-                        userInput.sharedSecurityCost ?? 0
-                      );
-                      setInvoices(processedInvoices);
+              {currentStep < CurrentStep.InvoicesSent && (
+                <>
+                  <Box padding="space.100">
+                    <Button
+                      appearance="primary"
+                      onClick={() => fetchAssetsAndFillApplicationAccounts()}
+                      isDisabled={
+                        loading ||
+                        selectedCloudData.length === 0 ||
+                        currentStep < CurrentStep.DataFetched ||
+                        !allVendorsSelected(selectedCloudData, cloudVendors)
+                      }
+                    >
+                      2 Fill application/chargeback accounts
+                    </Button>
+                  </Box>
+                  <Box padding="space.100">
+                    <Button
+                      appearance="primary"
+                      onClick={() => {
+                        initProgress("Computing DBT...");
+                        try {
+                          const processedInvoices = generateDBT(
+                            globalContext?.apiData.settings ?? DefaultSettings,
+                            invoices,
+                            userInput.sharedSecurityCost ?? 0
+                          );
+                          setInvoices(processedInvoices);
 
-                      setCurrentStep(CurrentStep.DBTComputed);
-                      updateProgress(2);
-                    } catch (error) {
-                      console.error("JIRA API Error :", error);
-                    }
-                  }}
-                  isDisabled={loading || invoices.Invoices.size === 0 || currentStep < CurrentStep.AssetsFilled}
-                >
-                  3 Compute DBT
-                </Button>
-              </Box>
-              <Box padding="space.100">
-                <Button
-                  appearance="primary"
-                  onClick={async () => {
-                    initProgress("Generating invoices & IDocs files...");
-                    try {
-                      const invoiceLines = await generateInvoicesAndIDFiles({
-                        settings: globalContext?.apiData.settings ?? DefaultSettings,
-                        invoices,
-                        baseUrl: globalContext?.apiData.serverInfos.baseUrl ?? "",
-                        updateProgress,
-                      });
-                      setCurrentStep(CurrentStep.InvoicesGenerated);
-                      updateProgress(2);
-                      setInvoiceLinesData(invoiceLines);
-                    } catch (error) {
-                      console.error("JIRA API Error :", error);
-                    }
-                  }}
-                  isDisabled={loading || invoices.Invoices.size === 0 || currentStep < CurrentStep.DBTComputed}
-                >
-                  4 Generate invoices & IDocs files
-                </Button>
-              </Box>
-              <Box padding="space.100">
-                <Popup
-                  isOpen={popupOpen}
-                  onClose={() => setPopupOpen(false)}
-                  placement="bottom-start"
-                  content={() => <Box xcss={{ padding: "space.200" }}>Not implemented yet.</Box>}
-                  trigger={() => (
+                          setCurrentStep(CurrentStep.DBTComputed);
+                          updateProgress(2);
+                        } catch (error) {
+                          console.error("JIRA API Error :", error);
+                        }
+                      }}
+                      isDisabled={loading || invoices.Invoices.size === 0 || currentStep < CurrentStep.AssetsFilled}
+                    >
+                      3 Compute DBT
+                    </Button>
+                  </Box>
+                  <Box padding="space.100">
+                    <Button
+                      appearance="primary"
+                      onClick={async () => {
+                        initProgress("Generating invoices & IDocs files...");
+                        try {
+                          const invoiceLines = await generateInvoicesAndIDFiles({
+                            settings: globalContext?.apiData.settings ?? DefaultSettings,
+                            invoices,
+                            baseUrl: globalContext?.apiData.serverInfos.baseUrl ?? "",
+                            updateProgress,
+                          });
+                          setCurrentStep(CurrentStep.InvoicesGenerated);
+                          updateProgress(2);
+                          setInvoiceLinesData(invoiceLines);
+                        } catch (error) {
+                          console.error("JIRA API Error :", error);
+                        }
+                      }}
+                      isDisabled={loading || invoices.Invoices.size === 0 || currentStep < CurrentStep.DBTComputed}
+                    >
+                      4 Generate invoices & IDocs files
+                    </Button>
+                  </Box>
+                  <Box padding="space.100">
                     <Button
                       appearance="primary"
                       onClick={async () => {
                         initProgress("Sending invoices & IDocs files...");
                         try {
-                          /*
-                      await sendInvoicesAndIDFiles({
-                        settings: globalContext?.apiData.settings ?? DefaultSettings,
-                        invoices,
-                        updateProgress,
-                      });
-                      */
+                          if (invoiceLinesData && invoiceLinesData.length > 0) {
+                            await invoke("sendInvoicesAndIDocs", {
+                              mainChargebackOutKey: invoiceLinesData[0]?.Key,
+                            });
+                          }
+                          setInvoices(emptyInvoices);
+                          setCloudData([]);
+                          setCurrentStep(CurrentStep.SendingInvoices);
 
                           updateProgress(2);
                         } catch (error) {
@@ -354,14 +386,17 @@ const App = () => {
                         }
                       }}
                       isDisabled={
-                        loading || invoices.Invoices.size === 0 || currentStep < CurrentStep.InvoicesGenerated
+                        loading ||
+                        invoiceLinesData.length === 0 ||
+                        currentStep < CurrentStep.InvoicesGenerated ||
+                        currentStep >= CurrentStep.SendingInvoices
                       }
                     >
                       5 Send invoices & IDocs files
                     </Button>
-                  )}
-                />
-              </Box>
+                  </Box>
+                </>
+              )}
             </Inline>
             <Inline>
               <Box padding="space.100" xcss={{ width: "100%" }}>
@@ -380,7 +415,7 @@ const App = () => {
             </Inline>
 
             <Box padding="space.100">
-              {currentStep === CurrentStep.DataFetched && (
+              {(currentStep === CurrentStep.DataFetched || currentStep === CurrentStep.InvoicesGenerated) && (
                 <CloudDataTable data={cloudData} onSelect={onSelectCloudData} disabled={loading} />
               )}
               {currentStep === CurrentStep.AssetsFilled && taskErrors.length > 0 && (
@@ -391,9 +426,22 @@ const App = () => {
                   <Text>All Application Accounts Filled without errors.</Text>
                 </SectionMessage>
               )}
+              {currentStep === CurrentStep.SendingInvoices && (
+                <SectionMessage appearance="discovery">
+                  <Text>Sending PDF invoices (email) and IDocs files (ftp) in progress...</Text>
+                </SectionMessage>
+              )}
+              {currentStep === CurrentStep.InvoicesSent && (
+                <SectionMessage appearance="success">
+                  <Text>
+                    All PDF invoices (email) and IDocs files (ftp) have been sent successfully, nothing to do.
+                  </Text>
+                </SectionMessage>
+              )}
               {currentStep === CurrentStep.DBTComputed && <TableInvoices invoices={invoices} />}
-              {(currentStep === CurrentStep.InvoicesGenerated || currentStep === CurrentStep.DataFetched) &&
-                invoiceLinesData.length > 0 && <InvoiceLinesTable data={invoiceLinesData} />}
+              {currentStep >= CurrentStep.InvoicesGenerated && invoiceLinesData.length > 0 && (
+                <InvoiceLinesTable data={invoiceLinesData} />
+              )}
             </Box>
           </Box>
         </Inline>

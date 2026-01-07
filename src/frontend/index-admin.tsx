@@ -21,6 +21,7 @@ import { ObjectAttributeSelect } from "./components/objectAttributeSelect";
 import { YellowBox, BlueBox } from "./components/roundedbox";
 import { FieldSelect } from "./components/FieldSelect";
 import { RoleSelect } from "./components/RoleSelect";
+import { AssetSelect } from "./components/AssetSelect";
 
 const App = () => {
   const [loading, setLoading] = useState(true);
@@ -183,7 +184,7 @@ const App = () => {
                 />
               </Inline>
 
-              <YellowBox title="Application Asset">
+              <YellowBox title="Applications Assets">
                 <ObjectTypeSelect
                   objectTypeId={settings.applicationObjectTypeId}
                   objectSchemaId={settings.objectSchemaId}
@@ -237,7 +238,7 @@ const App = () => {
                   />
                 </Inline>
               </YellowBox>
-              <YellowBox title="Chargeback Account Asset">
+              <YellowBox title="Chargeback Accounts Assets">
                 <ObjectTypeSelect
                   objectTypeId={settings.chargebackAccountObjectTypeId}
                   objectSchemaId={settings.objectSchemaId}
@@ -281,19 +282,6 @@ const App = () => {
                       const newSettings = {
                         ...settings,
                         chargebackAccountObjectAttributeChargeLE: newObjectAttributeId,
-                      };
-                      setSettings(newSettings);
-                    }}
-                  />
-                  <ObjectAttributeSelect
-                    objectAttributeId={settings.chargebackAccountObjectAttributeBusinessUnit}
-                    objectTypeId={settings.chargebackAccountObjectTypeId}
-                    workSpaceId={settings.workSpaceId}
-                    label="CB Account Business Unit"
-                    onChange={(newObjectAttributeId: string) => {
-                      const newSettings = {
-                        ...settings,
-                        chargebackAccountObjectAttributeBusinessUnit: newObjectAttributeId,
                       };
                       setSettings(newSettings);
                     }}
@@ -402,46 +390,126 @@ const App = () => {
                   />
                 </Inline>
               </YellowBox>
-              <YellowBox title="People Asset">
+              <YellowBox title="Legal Entities Assets">
                 <ObjectTypeSelect
-                  objectTypeId={settings.peopleObjectTypeId}
+                  objectTypeId={settings.legalEntitiesObjectTypeId}
                   objectSchemaId={settings.objectSchemaId}
                   workSpaceId={settings.workSpaceId}
-                  label="Object type for People"
+                  label="Object type for Legal Entities"
                   onChange={(newObjectTypeId: string) => {
-                    const newSettings = { ...settings, peopleObjectTypeId: newObjectTypeId };
+                    const newSettings = { ...settings, legalEntitiesObjectTypeId: newObjectTypeId };
+                    setSettings(newSettings);
+                  }}
+                />
+                <ObjectAttributeSelect
+                  objectAttributeId={settings.legalEntityObjectAttributeName}
+                  objectTypeId={settings.legalEntitiesObjectTypeId}
+                  workSpaceId={settings.workSpaceId}
+                  label="Name Attribute"
+                  onChange={(newObjectAttributeId: string) => {
+                    const newSettings = {
+                      ...settings,
+                      legalEntityObjectAttributeName: newObjectAttributeId,
+                    };
                     setSettings(newSettings);
                   }}
                 />
                 <Inline alignInline="start" space="space.200">
                   <ObjectAttributeSelect
-                    objectAttributeId={settings.peopleObjectAttributeEmail}
-                    objectTypeId={settings.peopleObjectTypeId}
+                    objectAttributeId={settings.legalEntityObjectAttributeCode}
+                    objectTypeId={settings.legalEntitiesObjectTypeId}
                     workSpaceId={settings.workSpaceId}
-                    label="Email Attribute"
+                    label="Code Attribute"
                     onChange={(newObjectAttributeId: string) => {
                       const newSettings = {
                         ...settings,
-                        peopleObjectAttributeEmail: newObjectAttributeId,
+                        legalEntityObjectAttributeCode: newObjectAttributeId,
+                      };
+                      setSettings(newSettings);
+                    }}
+                  />
+                  <ObjectAttributeSelect
+                    objectAttributeId={settings.legalEntityObjectAttributeSystem}
+                    objectTypeId={settings.legalEntitiesObjectTypeId}
+                    workSpaceId={settings.workSpaceId}
+                    label="System Attribute"
+                    onChange={(newObjectAttributeId: string) => {
+                      const newSettings = {
+                        ...settings,
+                        legalEntityObjectAttributeSystem: newObjectAttributeId,
                       };
                       setSettings(newSettings);
                     }}
                   />
                 </Inline>
               </YellowBox>
-              {/*
-          <YellowBox title="Tenant Asset">
-            <ObjectTypeSelect
-              objectTypeId={settings.tenantObjectTypeId}
-              objectSchemaId={settings.objectSchemaId}
-              workSpaceId={settings.workSpaceId}
-              label="Object type for Tenant"
-              onChange={(newObjectTypeId: string) => {
-                const newSettings = { ...settings, tenantObjectTypeId: newObjectTypeId };
-                onChangeSettings(newSettings);
-              }}
-            />
-          </YellowBox> */}
+
+              <YellowBox title="Reporting Units Assets">
+                <ObjectTypeSelect
+                  objectTypeId={settings.reportingUnitObjectTypeId}
+                  objectSchemaId={settings.objectSchemaId}
+                  workSpaceId={settings.workSpaceId}
+                  label="Object type for Reporting Units"
+                  onChange={(newObjectTypeId: string) => {
+                    const newSettings = { ...settings, reportingUnitObjectTypeId: newObjectTypeId };
+                    setSettings(newSettings);
+                  }}
+                />
+                <Inline alignInline="start" space="space.200">
+                  <ObjectAttributeSelect
+                    objectAttributeId={settings.reportingUnitObjectAttributeName}
+                    objectTypeId={settings.reportingUnitObjectTypeId}
+                    workSpaceId={settings.workSpaceId}
+                    label="Name Attribute"
+                    onChange={(newObjectAttributeId: string) => {
+                      const newSettings = {
+                        ...settings,
+                        reportingUnitObjectAttributeName: newObjectAttributeId,
+                      };
+                      setSettings(newSettings);
+                    }}
+                  />
+                  <ObjectAttributeSelect
+                    objectAttributeId={settings.reportingUnitObjectAttributeCode}
+                    objectTypeId={settings.reportingUnitObjectTypeId}
+                    workSpaceId={settings.workSpaceId}
+                    label="Code Attribute"
+                    onChange={(newObjectAttributeId: string) => {
+                      const newSettings = {
+                        ...settings,
+                        reportingUnitObjectAttributeCode: newObjectAttributeId,
+                      };
+                      setSettings(newSettings);
+                    }}
+                  />
+                  <ObjectAttributeSelect
+                    objectAttributeId={settings.reportingUnitObjectAttributeAddress}
+                    objectTypeId={settings.reportingUnitObjectTypeId}
+                    workSpaceId={settings.workSpaceId}
+                    label="Address Attribute"
+                    onChange={(newObjectAttributeId: string) => {
+                      const newSettings = {
+                        ...settings,
+                        reportingUnitObjectAttributeAddress: newObjectAttributeId,
+                      };
+                      setSettings(newSettings);
+                    }}
+                  />
+                  <ObjectAttributeSelect
+                    objectAttributeId={settings.reportingUnitObjectAttributeCountry}
+                    objectTypeId={settings.reportingUnitObjectTypeId}
+                    workSpaceId={settings.workSpaceId}
+                    label="Country Attribute"
+                    onChange={(newObjectAttributeId: string) => {
+                      const newSettings = {
+                        ...settings,
+                        reportingUnitObjectAttributeCountry: newObjectAttributeId,
+                      };
+                      setSettings(newSettings);
+                    }}
+                  />
+                </Inline>
+              </YellowBox>
               <Inline alignInline="start" space="space.200">
                 <Box>
                   <Label labelFor="sharedCostsAccounts">Shared Costs Accounts (comma separated)</Label>
@@ -489,24 +557,26 @@ const App = () => {
                     }}
                   />
                 </Box>
+              </Inline>
+              <Inline alignInline="start" space="space.200">
+                <AssetSelect
+                  label="Remit To Asset"
+                  workSpaceId={settings.workSpaceId}
+                  objectTypeId={settings.reportingUnitObjectTypeId}
+                  assetId={settings.remitToAssetId}
+                  onChange={(newAssetId: string) => {
+                    const newSettings = { ...settings, remitToAssetId: newAssetId };
+                    setSettings(newSettings);
+                  }}
+                />
                 <Box xcss={{ width: "25%" }}>
-                  <Label labelFor="defaultVendor">Default Vendor</Label>
-                  <Textfield
-                    value={settings.defaultVendor}
-                    id="defaultVendor"
-                    onChange={(e) => {
-                      const newSettings = { ...settings, defaultVendor: e.target.value };
-                      setSettings(newSettings);
-                    }}
-                  />
-                </Box>
-                <Box xcss={{ width: "25%" }}>
-                  <Label labelFor="defaultChargeLE">Default Charge LE</Label>
-                  <Textfield
-                    value={settings.defaultChargeLE}
-                    id="defaultChargeLE"
-                    onChange={(e) => {
-                      const newSettings = { ...settings, defaultChargeLE: e.target.value };
+                  <AssetSelect
+                    label="Default Legal Entity Asset"
+                    workSpaceId={settings.workSpaceId}
+                    objectTypeId={settings.legalEntitiesObjectTypeId}
+                    assetId={settings.defaultLegalEntityId}
+                    onChange={(newAssetId: string) => {
+                      const newSettings = { ...settings, defaultLegalEntityId: newAssetId };
                       setSettings(newSettings);
                     }}
                   />

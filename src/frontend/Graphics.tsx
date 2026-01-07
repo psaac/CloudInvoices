@@ -13,24 +13,20 @@ const internalLozenge = (text: string, appearance: ThemeAppearance) => {
   );
 };
 
-export const LozengeNew = () => {
-  return internalLozenge("New", "default");
-};
-
-export const LozengeAssetOK = () => {
-  return internalLozenge("Asset OK", "success");
+export const LozengeNew = ({ text = "New" }: { text?: string }) => {
+  return internalLozenge(text, "default");
 };
 
 export const LozengeError = ({ text }: { text: string }) => {
   return internalLozenge(text, "removed");
 };
 
-export const LozengeInProgress = () => {
-  return internalLozenge("In Progress", "inprogress");
+export const LozengeInProgress = ({ text = "In Progress" }: { text?: string }) => {
+  return internalLozenge(text, "inprogress");
 };
 
-export const LozengeDone = () => {
-  return internalLozenge("Done", "success");
+export const LozengeDone = ({ text = "Done" }: { text?: string }) => {
+  return internalLozenge(text, "success");
 };
 
 export const allVendorsSelected = (selectedCloudData: Array<CloudData>, cloudVendors: Array<CloudVendor>): boolean => {

@@ -112,7 +112,7 @@ export const getWorkItems = async ({ issueIdsOrKeys, fields }: GetWorkItemsType)
 
 export const deleteWorkItem = async ({ workItemKey }: { workItemKey: string }): Promise<void> => {
   // Delete JIRA Work item
-  await api.asApp().requestJira(route`/rest/api/3/issue/${workItemKey}`, {
+  await api.asApp().requestJira(route`/rest/api/3/issue/${workItemKey}?deleteSubtasks=true`, {
     method: "DELETE",
   });
 };

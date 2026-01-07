@@ -10,7 +10,7 @@ interface SearchWorkItemsType {
 }
 
 async function internalSearchWorkItems(params: SearchWorkItemsType) {
-  // log("Searching work items with JQL:", JSON.stringify(params));
+  // console.log("Searching work items with JQL:", JSON.stringify(params));
   const response = await api.asApp().requestJira(route`/rest/api/3/search/jql`, {
     method: "POST",
     headers: {

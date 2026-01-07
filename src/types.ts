@@ -28,7 +28,6 @@ export interface Settings {
   chargebackAccountObjectAttributeName: string;
   chargebackAccountObjectAttributeChargeCC: string;
   chargebackAccountObjectAttributeChargeLE: string;
-  chargebackAccountObjectAttributeBusinessUnit: string;
   chargebackAccountObjectAttributeTenant: string;
   chargebackAccountObjectAttributeOwner: string;
   chargebackAccountObjectAttributeFinancialController: string;
@@ -37,15 +36,20 @@ export interface Settings {
   chargebackAccountObjectAttributeAdditionalContacts: string;
   chargebackAccountObjectAttributeReportingUnit: string;
   chargebackAccountObjectAttributeSAPAccount: string;
-  // vendorObjectTypeId: string;
-  // tenantObjectTypeId: string;
-  peopleObjectTypeId: string;
-  peopleObjectAttributeEmail: string;
+  legalEntitiesObjectTypeId: string;
+  legalEntityObjectAttributeName: string;
+  legalEntityObjectAttributeCode: string;
+  legalEntityObjectAttributeSystem: string;
+  reportingUnitObjectTypeId: string;
+  reportingUnitObjectAttributeName: string;
+  reportingUnitObjectAttributeCode: string;
+  reportingUnitObjectAttributeAddress: string;
+  reportingUnitObjectAttributeCountry: string;
   sharedCostsAccounts: string;
-  defaultChargeLE: string;
+  remitToAssetId: string;
+  defaultLegalEntityId: string;
   defaultSAPAccount: string;
   defaultCostCenter: string;
-  defaultVendor: string;
   invoicePrefix: string;
   // Jira Fields
   inputFieldBatchId: string;
@@ -73,7 +77,6 @@ export const DefaultSettings: Settings = {
   chargebackAccountObjectAttributeName: "",
   chargebackAccountObjectAttributeChargeCC: "",
   chargebackAccountObjectAttributeChargeLE: "",
-  chargebackAccountObjectAttributeBusinessUnit: "",
   chargebackAccountObjectAttributeTenant: "",
   chargebackAccountObjectAttributeOwner: "",
   chargebackAccountObjectAttributeFinancialController: "",
@@ -82,15 +85,20 @@ export const DefaultSettings: Settings = {
   chargebackAccountObjectAttributeAdditionalContacts: "",
   chargebackAccountObjectAttributeReportingUnit: "",
   chargebackAccountObjectAttributeSAPAccount: "",
-  // vendorObjectTypeId: "",
-  // tenantObjectTypeId: "",
-  peopleObjectTypeId: "",
-  peopleObjectAttributeEmail: "",
+  legalEntitiesObjectTypeId: "",
+  legalEntityObjectAttributeName: "",
+  legalEntityObjectAttributeCode: "",
+  legalEntityObjectAttributeSystem: "",
+  reportingUnitObjectTypeId: "",
+  reportingUnitObjectAttributeName: "",
+  reportingUnitObjectAttributeCode: "",
+  reportingUnitObjectAttributeAddress: "",
+  reportingUnitObjectAttributeCountry: "",
   sharedCostsAccounts: "",
-  defaultChargeLE: "L323 (PS4)",
+  remitToAssetId: "",
+  defaultLegalEntityId: "",
   defaultSAPAccount: "6226110000",
   defaultCostCenter: "2013236L03",
-  defaultVendor: "VLE3211",
   invoicePrefix: "CGB",
   inputFieldBatchId: "",
   inputFieldBillingMonth: "",

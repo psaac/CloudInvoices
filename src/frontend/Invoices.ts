@@ -24,17 +24,24 @@ export interface Invoice {
   BillingMonth: string;
   Date: string; // Invoice date
   CostCenter: string; // Charge CC
-  ChargeLE: string;
   Owner: string; // Chargeback Owner
   Controller: string; // Chargeback Finance Controller
   emailsToNotify: Array<string>; // Emails to notify
-  BusinessUnit: string; // Chargeback Business Unit
   Tenant: string; // Chargeback Tenant
-  ReportingUnit: string; // Chargeback Reporting Unit
+  SoldToCode: string; // Chargeback Reporting Unit
+  SoldToName: string; // Reporting Unit Name
+  SoldToAddress: string; // Reporting Unit Address
+  SoldToCountry: string; // Reporting Unit Country
+  RemitToCode: string; // Chargeback Reporting Unit
+  RemitToName: string; // Reporting Unit Name
+  RemitToAddress: string; // Reporting Unit Address
+  RemitToCountry: string; // Reporting Unit Country
   SAPAccount: string; // SAP Account to use
   TotalAmount: number | 0;
   CostsByVendor: Map<string, VendorCost>; // Key is Vendor Name
   TotalByAppAccount: Map<string, AppAccountCost>; // Key is Application Account ID
+  LegalEntityCode: string; // Legal Entity Code
+  LegalEntitySystem: string; // Legal Entity System
 }
 
 export interface Invoices {
@@ -57,6 +64,18 @@ export const generateInvoicesAndIDFiles = async ({
   updateProgress: (progress: number, message?: string) => void;
 }): Promise<Array<InvoiceLine>> => {
   updateProgress(0, "Preparing...");
+  // Retreive Default Legal Entity Asset
+  const defaultLegalEntityAsset: any = await invoke("getAssetById", {
+    workSpaceId: settings.workSpaceId,
+    assetId: settings.defaultLegalEntityId,
+  });
+  const defaultLegalEntityCode = defaultLegalEntityAsset.attributes.find(
+    (attr: any) => attr.id === settings.legalEntityObjectAttributeCode
+  ).objectAttributeValues[0].value;
+  const defaultLegalEntitySystem = defaultLegalEntityAsset.attributes.find(
+    (attr: any) => attr.id === settings.legalEntityObjectAttributeSystem
+  ).objectAttributeValues[0].value;
+
   const result: Array<InvoiceLine> = [];
   // Create JIRA Work item to store Invoices (as sub-tasks) & ID Files
   const mainSummary = `Chargeback Invoices & IDocs Files - ${invoices.BillingMonth}`;
@@ -73,6 +92,7 @@ export const generateInvoicesAndIDFiles = async ({
     Summary: mainSummary,
     Key: chargebackItem.key,
     Link: `${baseUrl}/browse/${chargebackItem.key}`,
+    Status: "Open",
   });
 
   // Generate Invoice PDF & sub-tasks
@@ -93,6 +113,8 @@ export const generateInvoicesAndIDFiles = async ({
       parentWorkItemKey: chargebackItem.key,
       summary,
       invoice: saveWithMapsFromRaw(invoice),
+      defaultLegalEntityCode,
+      defaultLegalEntitySystem,
     })) as string;
 
     result.push({
@@ -100,6 +122,7 @@ export const generateInvoicesAndIDFiles = async ({
       Summary: summary,
       Key: subTaskKey,
       Link: `${baseUrl}/browse/${subTaskKey}`,
+      Status: "Open",
     });
 
     index++;
@@ -108,29 +131,3 @@ export const generateInvoicesAndIDFiles = async ({
   updateProgress(1);
   return result;
 };
-
-/*
-export const sendInvoicesAndIDFiles = async ({
-  settings,
-  invoices,
-  updateProgress,
-}: {
-  settings: Settings;
-  invoices: Invoices;
-  updateProgress: (progress: number) => void;
-}): Promise<void> => {
-  // Send Invoice & IDoc files to SAP system via API
-  let index = 0;
-  for (const [_, invoice] of invoices.Invoices) {
-    await invoke("sendInvoiceAndIDoc", {
-      settings,
-      invoice: saveWithMapsFromRaw(invoice),
-    });
-
-    index++;
-    updateProgress(index / invoices.Invoices.size);
-    // break; // Debug: process only first invoice
-  }
-  updateProgress(1);
-};
-*/

@@ -8,13 +8,19 @@ import { Invoices, Invoice, AppAccountCost, VendorCost } from "./Invoices";
 class AppAccountProcess extends BaseProcess {
   applicationAssets: AssetsAndAttrs;
   chargebackAssets: AssetsAndAttrs;
+  legalEntityAssets: AssetsAndAttrs;
+  reportingUnitsAssets: AssetsAndAttrs;
+  remitToAsset: any;
   tasks: Task[];
-  peopleCache: Map<string, any>;
+  // peopleCache: Map<string, any>;
 
   constructor(
     billingMonth: string,
     applicationAssets: AssetsAndAttrs,
     chargebackAssets: AssetsAndAttrs,
+    legalEntityAssets: AssetsAndAttrs,
+    reportingUnitsAssets: AssetsAndAttrs,
+    remitToAsset: any,
     tasks: Array<Task>,
     settings: Settings
   ) {
@@ -22,7 +28,10 @@ class AppAccountProcess extends BaseProcess {
     this.tasks = tasks;
     this.applicationAssets = applicationAssets;
     this.chargebackAssets = chargebackAssets;
-    this.peopleCache = new Map<string, any>();
+    this.legalEntityAssets = legalEntityAssets;
+    this.reportingUnitsAssets = reportingUnitsAssets;
+    this.remitToAsset = remitToAsset;
+    // this.peopleCache = new Map<string, any>();
   }
 
   // Helper for asset attributes
@@ -70,20 +79,23 @@ class AppAccountProcess extends BaseProcess {
       });
     }
 
-    // Find attribute id for Cha Id
-    const responseChargebackAccountAttr = this.chargebackAssets.attrs.find(
-      (attr: any) => attr.id === this.settings.chargebackAccountObjectAttributeName
-    );
+    // Build asset cache for Chargeback Accounts
     const assetsChargebackAccountsCache = new Map<string, any>();
-    if (responseChargebackAccountAttr) {
-      this.chargebackAssets.assets.forEach((asset: any) => {
-        const chargebackKey = asset.attributes.find((attr: any) => attr.id === responseChargebackAccountAttr.id)
-          ?.objectAttributeValues[0].displayValue;
-        if (chargebackKey) {
-          assetsChargebackAccountsCache.set(chargebackKey, asset);
-        }
-      });
-    }
+    this.chargebackAssets.assets.forEach((asset: any) => {
+      assetsChargebackAccountsCache.set(asset.id, asset);
+    });
+
+    // Build Reporting Unit Code cache by internal id
+    const reportingUnitsCache = new Map<string, any>();
+    this.reportingUnitsAssets.assets.forEach((asset: any) => {
+      reportingUnitsCache.set(asset.id, asset);
+    });
+
+    // Build Reporting Unit Code cache by internal id
+    const legalEntitiesCache = new Map<string, any>();
+    this.legalEntityAssets.assets.forEach((asset: any) => {
+      legalEntitiesCache.set(asset.id, asset);
+    });
 
     try {
       // First exclude applications which have null cost
@@ -101,7 +113,6 @@ class AppAccountProcess extends BaseProcess {
 
       // Exclude tasks with empty account id
       const filteredEntries = this.tasks.filter((entry) => entry.AccountId);
-      //   filteredEntries.splice(0, filteredEntries.length - 2); // For testing errors
 
       // Skip empty subscription or account id
       // filteredEntries.map(async (task: Task) => {
@@ -111,162 +122,261 @@ class AppAccountProcess extends BaseProcess {
           // Use cache
           const applicationAsset = assetsAppAccountsCache.get(appAccountKey);
           if (applicationAsset) {
-            const chargebackName = this.getAttributeValue(
+            const chargebackAttr = this.getAttribute(
               applicationAsset,
               this.settings.applicationObjectAttributeChargeback,
               this.applicationAssets.attrs
             );
-            if (chargebackName !== "") {
+            if (
+              chargebackAttr &&
+              chargebackAttr.objectAttributeValues.length > 0 &&
+              assetsChargebackAccountsCache.has(chargebackAttr.objectAttributeValues[0].referencedObject.id)
+            ) {
               // Find chargeback asset
-              const chargebackAsset = assetsChargebackAccountsCache.get(chargebackName);
-              if (chargebackAsset) {
-                let SAPAccount = this.getAttributeValue(
+              const chargebackAsset = assetsChargebackAccountsCache.get(
+                chargebackAttr.objectAttributeValues[0].referencedObject.id
+              );
+
+              let SAPAccount = this.getAttributeValue(
+                chargebackAsset,
+                this.settings.chargebackAccountObjectAttributeSAPAccount,
+                this.chargebackAssets.attrs
+              );
+              if (!SAPAccount || SAPAccount.trim() === "") {
+                SAPAccount = this.settings.defaultSAPAccount;
+              }
+
+              // Find Reporting Unit Asset (Sold To & Remit To)
+              const soldToAttr = this.getAttribute(
+                chargebackAsset,
+                this.settings.chargebackAccountObjectAttributeReportingUnit,
+                this.chargebackAssets.attrs
+              );
+              if (
+                soldToAttr &&
+                soldToAttr.objectAttributeValues.length > 0 &&
+                reportingUnitsCache.has(soldToAttr.objectAttributeValues[0].referencedObject.id)
+              ) {
+                const soldToAsset = reportingUnitsCache.get(soldToAttr.objectAttributeValues[0].referencedObject.id);
+
+                // Find Legal Entity Asset
+                const legalEntityAttr = this.getAttribute(
                   chargebackAsset,
-                  this.settings.chargebackAccountObjectAttributeSAPAccount,
+                  this.settings.chargebackAccountObjectAttributeChargeLE,
                   this.chargebackAssets.attrs
                 );
-                if (!SAPAccount || SAPAccount.trim() === "") {
-                  SAPAccount = this.settings.defaultSAPAccount;
-                }
-
-                // Retreive emails to notify from :
-                // - Chargeback owner attribute
-                // - Chargeback Finance controller attribute
-                // - Chargeback Administrator attribute
-                // - Chargeback Alternate Administrator attribute
-                // - Chargeback Additionnal contacts attribute
-                const getEmails = async (attributeId: string) => {
-                  const attr = this.getAttribute(chargebackAsset, attributeId, this.chargebackAssets.attrs);
-                  const values = attr?.objectAttributeValues ?? [];
-
-                  const emailArrays = await Promise.all(
-                    values.map(async (val: any) => {
-                      const referencedObject = val.referencedObject;
-                      if (!referencedObject) return null;
-
-                      // load email from referenced object id
-                      if (!this.peopleCache.has(referencedObject.id)) {
-                        const people = await invoke("getAssetById", {
-                          settings: this.settings,
-                          assetId: referencedObject.id,
-                        });
-                        this.peopleCache.set(referencedObject.id, people);
-                      }
-                      const asset = this.peopleCache.get(referencedObject.id);
-
-                      const emailAttr = asset.attributes.find(
-                        (attr: any) => attr.id === this.settings.peopleObjectAttributeEmail
-                      );
-                      if (emailAttr && emailAttr.objectAttributeValues.length > 0) {
-                        return emailAttr.objectAttributeValues[0].value || null;
-                      }
-                      return null;
-                    })
+                if (
+                  legalEntityAttr &&
+                  legalEntityAttr.objectAttributeValues.length > 0 &&
+                  legalEntitiesCache.has(legalEntityAttr.objectAttributeValues[0].referencedObject.id)
+                ) {
+                  const legalEntityAsset = legalEntitiesCache.get(
+                    legalEntityAttr.objectAttributeValues[0].referencedObject.id
                   );
+                  // Retreive emails to notify from :
+                  // - Chargeback owner attribute
+                  // - Chargeback Finance controller attribute
+                  // - Chargeback Administrator attribute
+                  // - Chargeback Alternate Administrator attribute
+                  // - Chargeback Additionnal contacts attribute
+                  /*
+                  const getEmails = async (attributeId: string) => {
+                    const attr = this.getAttribute(chargebackAsset, attributeId, this.chargebackAssets.attrs);
+                    const values = attr?.objectAttributeValues ?? [];
 
-                  return emailArrays.filter((email): email is string => email !== null);
-                };
-                const emailLists = await Promise.all([
-                  getEmails(this.settings.chargebackAccountObjectAttributeOwner),
-                  getEmails(this.settings.chargebackAccountObjectAttributeFinancialController),
-                  getEmails(this.settings.chargebackAccountObjectAttributeAdministrator),
-                  getEmails(this.settings.chargebackAccountObjectAttributeAlternativeAdministrators),
-                  this.getAttributeValues(
-                    chargebackAsset,
-                    this.settings.chargebackAccountObjectAttributeAdditionalContacts,
-                    this.chargebackAssets.attrs
-                  ),
-                ]);
-                const emailsToNotify = [...new Set(emailLists.flat())]; // Unique emails
-                // TODO : load additionnal contacts from a multi value attribute
-                // Find matching Invoice
-                const invoice = result.Invoices.get(chargebackAsset.id) || {
-                  CustomerId: chargebackAsset.id,
-                  BillingMonth: this.billingMonth,
-                  Customer: chargebackName,
-                  CostCenter: this.getAttributeValue(
-                    chargebackAsset,
-                    this.settings.chargebackAccountObjectAttributeChargeCC,
-                    this.chargebackAssets.attrs
-                  ),
-                  ChargeLE: this.getAttributeValue(
-                    chargebackAsset,
-                    this.settings.chargebackAccountObjectAttributeChargeLE,
-                    this.chargebackAssets.attrs
-                  ),
-                  Owner: this.getAttributeValue(
-                    chargebackAsset,
-                    this.settings.chargebackAccountObjectAttributeOwner,
-                    this.chargebackAssets.attrs
-                  ),
-                  Controller: this.getAttributeValue(
-                    chargebackAsset,
-                    this.settings.chargebackAccountObjectAttributeFinancialController,
-                    this.chargebackAssets.attrs
-                  ),
-                  emailsToNotify,
-                  BusinessUnit: this.getAttributeValue(
-                    chargebackAsset,
-                    this.settings.chargebackAccountObjectAttributeBusinessUnit,
-                    this.chargebackAssets.attrs
-                  ),
-                  Tenant: this.getAttributeValue(
-                    chargebackAsset,
-                    this.settings.chargebackAccountObjectAttributeTenant,
-                    this.chargebackAssets.attrs
-                  ),
-                  ReportingUnit: this.getAttributeValue(
-                    chargebackAsset,
-                    this.settings.chargebackAccountObjectAttributeReportingUnit,
-                    this.chargebackAssets.attrs
-                  ),
-                  SAPAccount,
-                  Date: "",
-                  CostsByVendor: new Map<string, VendorCost>(),
-                  TotalAmount: 0,
-                  TotalByAppAccount: new Map<string, AppAccountCost>(),
-                };
+                    const emailArrays = await Promise.all(
+                      values.map(async (val: any) => {
+                        const referencedObject = val.referencedObject;
+                        if (!referencedObject) return null;
 
-                // Then find Vendor Cost in Invoice
-                const vendorCost = invoice.CostsByVendor.get(task.CloudVendor) || {
-                  Vendor: task.CloudVendor,
-                  TotalAmount: 0,
-                  CostsByAppAccount: new Map<string, AppAccountCost>(),
-                };
+                        // load email from referenced object id
+                        if (!this.peopleCache.has(referencedObject.id)) {
+                          const people = await invoke("getAssetById", {
+                            workSpaceId: this.settings.workSpaceId,
+                            assetId: referencedObject.id,
+                          });
+                          this.peopleCache.set(referencedObject.id, people);
+                        }
+                        const asset = this.peopleCache.get(referencedObject.id);
 
-                const appName = this.getAttributeValue(
-                  applicationAsset,
-                  this.settings.applicationObjectAttributeName,
-                  this.applicationAssets.attrs
-                );
-                // Finally find Vendor Cost in App Account
-                const appAccountCost = vendorCost.CostsByAppAccount.get(appAccountKey) || {
-                  AppId: appAccountKey,
-                  AppName: appName,
-                  Tasks: [] as Task[],
-                  TotalAmount: 0,
-                };
+                        const emailAttr = asset.attributes.find(
+                          (attr: any) => attr.id === this.settings.peopleObjectAttributeEmail
+                        );
+                        if (emailAttr && emailAttr.objectAttributeValues.length > 0) {
+                          return emailAttr.objectAttributeValues[0].value || null;
+                        }
+                        return null;
+                      })
+                    );
 
-                task.Seller = task.CloudVendor;
-                task.Cost = task.Cost;
-                appAccountCost.Tasks.push(task);
-                vendorCost.TotalAmount += task.Cost;
-                appAccountCost.TotalAmount += task.Cost;
-                const existingTotalByAppAccount = invoice.TotalByAppAccount.get(appAccountKey) || {
-                  AppId: appAccountKey,
-                  AppName: appName,
-                  TotalAmount: 0,
-                  Tasks: [],
-                };
-                existingTotalByAppAccount.TotalAmount += task.Cost;
-                invoice.TotalByAppAccount.set(appAccountKey, existingTotalByAppAccount);
-                invoice.TotalAmount += task.Cost;
+                    return emailArrays.filter((email): email is string => email !== null);
+                  };
+                  */
+                  const emailLists = await Promise.all([
+                    /*
+                    getEmails(this.settings.chargebackAccountObjectAttributeOwner),
+                    getEmails(this.settings.chargebackAccountObjectAttributeFinancialController),
+                    getEmails(this.settings.chargebackAccountObjectAttributeAdministrator),
+                    getEmails(this.settings.chargebackAccountObjectAttributeAlternativeAdministrators),
+                    */
+                    this.getAttributeValues(
+                      chargebackAsset,
+                      this.settings.chargebackAccountObjectAttributeOwner,
+                      this.chargebackAssets.attrs
+                    ),
+                    this.getAttributeValues(
+                      chargebackAsset,
+                      this.settings.chargebackAccountObjectAttributeFinancialController,
+                      this.chargebackAssets.attrs
+                    ),
+                    this.getAttributeValues(
+                      chargebackAsset,
+                      this.settings.chargebackAccountObjectAttributeAdministrator,
+                      this.chargebackAssets.attrs
+                    ),
+                    this.getAttributeValues(
+                      chargebackAsset,
+                      this.settings.chargebackAccountObjectAttributeAlternativeAdministrators,
+                      this.chargebackAssets.attrs
+                    ),
+                    this.getAttributeValues(
+                      chargebackAsset,
+                      this.settings.chargebackAccountObjectAttributeAdditionalContacts,
+                      this.chargebackAssets.attrs
+                    ),
+                  ]);
+                  const emailsToNotify = [...new Set(emailLists.flat())]; // Unique emails
+                  // Find matching Invoice
+                  const invoice = result.Invoices.get(chargebackAsset.id) || {
+                    CustomerId: chargebackAsset.id,
+                    BillingMonth: this.billingMonth,
+                    Customer: this.getAttributeValue(
+                      chargebackAsset,
+                      this.settings.chargebackAccountObjectAttributeName,
+                      this.chargebackAssets.attrs
+                    ),
+                    CostCenter: this.getAttributeValue(
+                      chargebackAsset,
+                      this.settings.chargebackAccountObjectAttributeChargeCC,
+                      this.chargebackAssets.attrs
+                    ),
+                    Owner: this.getAttributeValue(
+                      chargebackAsset,
+                      this.settings.chargebackAccountObjectAttributeOwner,
+                      this.chargebackAssets.attrs
+                    ),
+                    Controller: this.getAttributeValue(
+                      chargebackAsset,
+                      this.settings.chargebackAccountObjectAttributeFinancialController,
+                      this.chargebackAssets.attrs
+                    ),
+                    emailsToNotify,
+                    Tenant: this.getAttributeValue(
+                      chargebackAsset,
+                      this.settings.chargebackAccountObjectAttributeTenant,
+                      this.chargebackAssets.attrs
+                    ),
+                    SoldToCode: this.getAttributeValue(
+                      soldToAsset,
+                      this.settings.reportingUnitObjectAttributeCode,
+                      this.reportingUnitsAssets.attrs
+                    ),
+                    SoldToName: this.getAttributeValue(
+                      soldToAsset,
+                      this.settings.reportingUnitObjectAttributeName,
+                      this.reportingUnitsAssets.attrs
+                    ),
+                    SoldToAddress: this.getAttributeValue(
+                      soldToAsset,
+                      this.settings.reportingUnitObjectAttributeAddress,
+                      this.reportingUnitsAssets.attrs
+                    ),
+                    SoldToCountry: this.getAttributeValue(
+                      soldToAsset,
+                      this.settings.reportingUnitObjectAttributeCountry,
+                      this.reportingUnitsAssets.attrs
+                    ),
+                    RemitToCode: this.getAttributeValue(
+                      this.remitToAsset,
+                      this.settings.reportingUnitObjectAttributeCode,
+                      this.reportingUnitsAssets.attrs
+                    ),
+                    RemitToName: this.getAttributeValue(
+                      this.remitToAsset,
+                      this.settings.reportingUnitObjectAttributeName,
+                      this.reportingUnitsAssets.attrs
+                    ),
+                    RemitToAddress: this.getAttributeValue(
+                      this.remitToAsset,
+                      this.settings.reportingUnitObjectAttributeAddress,
+                      this.reportingUnitsAssets.attrs
+                    ),
+                    RemitToCountry: this.getAttributeValue(
+                      this.remitToAsset,
+                      this.settings.reportingUnitObjectAttributeCountry,
+                      this.reportingUnitsAssets.attrs
+                    ),
+                    LegalEntityCode: this.getAttributeValue(
+                      legalEntityAsset,
+                      this.settings.legalEntityObjectAttributeCode,
+                      this.legalEntityAssets.attrs
+                    ),
+                    LegalEntitySystem: this.getAttributeValue(
+                      legalEntityAsset,
+                      this.settings.legalEntityObjectAttributeSystem,
+                      this.legalEntityAssets.attrs
+                    ),
+                    SAPAccount: SAPAccount,
+                    Date: "",
+                    CostsByVendor: new Map<string, VendorCost>(),
+                    TotalAmount: 0,
+                    TotalByAppAccount: new Map<string, AppAccountCost>(),
+                  };
 
-                vendorCost.CostsByAppAccount.set(appAccountKey, appAccountCost);
-                invoice.CostsByVendor.set(task.CloudVendor, vendorCost);
-                result.Invoices.set(chargebackAsset.id, invoice);
+                  // Then find Vendor Cost in Invoice
+                  const vendorCost = invoice.CostsByVendor.get(task.CloudVendor) || {
+                    Vendor: task.CloudVendor,
+                    TotalAmount: 0,
+                    CostsByAppAccount: new Map<string, AppAccountCost>(),
+                  };
+
+                  const appName = this.getAttributeValue(
+                    applicationAsset,
+                    this.settings.applicationObjectAttributeName,
+                    this.applicationAssets.attrs
+                  );
+                  // Finally find Vendor Cost in App Account
+                  const appAccountCost = vendorCost.CostsByAppAccount.get(appAccountKey) || {
+                    AppId: appAccountKey,
+                    AppName: appName,
+                    Tasks: [] as Task[],
+                    TotalAmount: 0,
+                  };
+
+                  task.Seller = task.CloudVendor;
+                  task.Cost = task.Cost;
+                  appAccountCost.Tasks.push(task);
+                  vendorCost.TotalAmount += task.Cost;
+                  appAccountCost.TotalAmount += task.Cost;
+                  const existingTotalByAppAccount = invoice.TotalByAppAccount.get(appAccountKey) || {
+                    AppId: appAccountKey,
+                    AppName: appName,
+                    TotalAmount: 0,
+                    Tasks: [],
+                  };
+                  existingTotalByAppAccount.TotalAmount += task.Cost;
+                  invoice.TotalByAppAccount.set(appAccountKey, existingTotalByAppAccount);
+                  invoice.TotalAmount += task.Cost;
+
+                  vendorCost.CostsByAppAccount.set(appAccountKey, appAccountCost);
+                  invoice.CostsByVendor.set(task.CloudVendor, vendorCost);
+                  result.Invoices.set(chargebackAsset.id, invoice);
+                } else {
+                  task.Error = `No Legal Entity set for Chargeback Account ${chargebackAttr.objectAttributeValues[0].displayValue}`;
+                  taskErrors.push(task);
+                }
               } else {
-                task.Error = `Chargeback Asset ${chargebackName} not found for Application Account ${appAccountKey}`;
+                task.Error = `No Reporting Unit set for Chargeback Account ${chargebackAttr.objectAttributeValues[0].displayValue}`;
                 taskErrors.push(task);
               }
             } else {
@@ -315,15 +425,30 @@ export const fillApplicationAccounts = async ({
   billingMonth,
   applicationAssets,
   chargebackAssets,
+  legalEntityAssets,
+  reportingUnitsAssets,
+  remitToAsset,
   tasks,
   settings,
 }: {
   billingMonth: string;
   applicationAssets: AssetsAndAttrs;
   chargebackAssets: AssetsAndAttrs;
+  legalEntityAssets: AssetsAndAttrs;
+  reportingUnitsAssets: AssetsAndAttrs;
+  remitToAsset: any;
   tasks: Array<Task>;
   settings: Settings;
 }): Promise<{ result: Invoices; taskErrors: Array<Task> }> => {
-  const processor = new AppAccountProcess(billingMonth, applicationAssets, chargebackAssets, tasks, settings);
+  const processor = new AppAccountProcess(
+    billingMonth,
+    applicationAssets,
+    chargebackAssets,
+    legalEntityAssets,
+    reportingUnitsAssets,
+    remitToAsset,
+    tasks,
+    settings
+  );
   return await processor.fillApplicationAccounts();
 };
