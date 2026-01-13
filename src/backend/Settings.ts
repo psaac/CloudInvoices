@@ -8,8 +8,9 @@ export default class SettingsCore {
       const settings = (await kvs.get(`settings`)) as Settings;
       const defaultSettings = DefaultSettings;
       const appContext = getAppContext();
-      defaultSettings.appVersion = appContext.appVersion;
-      return { ...defaultSettings, ...settings };
+      const result = { ...defaultSettings, ...settings };
+      result.appVersion = appContext.appVersion;
+      return result;
     } catch (error) {
       console.error("Error fetching settings:", error);
       return DefaultSettings;

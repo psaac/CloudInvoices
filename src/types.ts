@@ -112,9 +112,9 @@ export const validSettings = (settings: Settings): boolean => {
 };
 
 export interface Task {
-  Summary: string;
-  Cost: number;
-  AccountId: string;
+  u_product_code: string;
+  u_cost: number;
+  u_account_id: string;
   // Additional fields may be present
   CloudVendor: string;
   link?: string;

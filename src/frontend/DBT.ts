@@ -80,10 +80,10 @@ class DBTProcess extends BaseProcess {
                 TotalAmount: sharedNetworkCost,
                 Tasks: [
                   {
-                    Summary: description,
-                    Cost: sharedNetworkCost,
+                    u_product_code: description,
+                    u_cost: sharedNetworkCost,
                     Seller: "Cloud-Shared-Costs",
-                    AccountId: appAccountCost.AppId,
+                    u_account_id: appAccountCost.AppId,
                     CloudVendor: CLOUD_NETWORK_SHARED_COST,
                   },
                 ],
@@ -164,10 +164,10 @@ class DBTProcess extends BaseProcess {
           TotalAmount: sharedSecurityCost,
           Tasks: [
             {
-              Summary: description,
-              Cost: sharedSecurityCost,
+              u_product_code: description,
+              u_cost: sharedSecurityCost,
               Seller: "Cloud-Security",
-              AccountId: appAccountCost.AppId,
+              u_account_id: appAccountCost.AppId,
               CloudVendor: CLOUD_SECURITY_VENDOR,
             },
           ],

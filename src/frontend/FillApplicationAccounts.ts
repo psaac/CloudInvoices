@@ -101,23 +101,23 @@ class AppAccountProcess extends BaseProcess {
       // First exclude applications which have null cost
       const costsByAppId: Map<string, number> = new Map<string, number>();
       this.tasks.forEach((task) => {
-        const existingCost = costsByAppId.get(task.AccountId) || 0;
-        costsByAppId.set(task.AccountId, existingCost + task.Cost);
+        const existingCost = costsByAppId.get(task.u_account_id) || 0;
+        costsByAppId.set(task.u_account_id, existingCost + task.u_cost);
       });
       costsByAppId.forEach((cost, appId) => {
         if (cost <= 0) {
           //   logInfo(`Excluding Application Account ${appId} with total cost of 0`);
-          this.tasks = this.tasks.filter((task) => task.AccountId !== appId);
+          this.tasks = this.tasks.filter((task) => task.u_account_id !== appId);
         }
       });
 
       // Exclude tasks with empty account id
-      const filteredEntries = this.tasks.filter((entry) => entry.AccountId);
+      const filteredEntries = this.tasks.filter((entry) => entry.u_account_id);
 
       // Skip empty subscription or account id
       // filteredEntries.map(async (task: Task) => {
       for (const task of filteredEntries) {
-        const appAccountKey = task.AccountId;
+        const appAccountKey = task.u_account_id;
         try {
           // Use cache
           const applicationAsset = assetsAppAccountsCache.get(appAccountKey);
@@ -354,19 +354,19 @@ class AppAccountProcess extends BaseProcess {
                   };
 
                   task.Seller = task.CloudVendor;
-                  task.Cost = task.Cost;
+                  task.u_cost = task.u_cost;
                   appAccountCost.Tasks.push(task);
-                  vendorCost.TotalAmount += task.Cost;
-                  appAccountCost.TotalAmount += task.Cost;
+                  vendorCost.TotalAmount += task.u_cost;
+                  appAccountCost.TotalAmount += task.u_cost;
                   const existingTotalByAppAccount = invoice.TotalByAppAccount.get(appAccountKey) || {
                     AppId: appAccountKey,
                     AppName: appName,
                     TotalAmount: 0,
                     Tasks: [],
                   };
-                  existingTotalByAppAccount.TotalAmount += task.Cost;
+                  existingTotalByAppAccount.TotalAmount += task.u_cost;
                   invoice.TotalByAppAccount.set(appAccountKey, existingTotalByAppAccount);
-                  invoice.TotalAmount += task.Cost;
+                  invoice.TotalAmount += task.u_cost;
 
                   vendorCost.CostsByAppAccount.set(appAccountKey, appAccountCost);
                   invoice.CostsByVendor.set(task.CloudVendor, vendorCost);
@@ -412,7 +412,8 @@ export const loadTasks = async (cloudData: CloudData): Promise<Array<Task>> => {
   }
 
   // Parse Data
-  const tasks: Task[] = JSON.parse(dataFile);
+  const jsonData = JSON.parse(dataFile);
+  const tasks: Task[] = jsonData.records as Array<Task>;
   tasks.forEach((task) => {
     // Add Cloud Vendor info
     task.CloudVendor = cloudData.CloudVendor.value;

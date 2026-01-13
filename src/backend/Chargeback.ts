@@ -357,15 +357,15 @@ export class Chargeback {
 
       for (const [appId, appCost] of Array.from(vendorCost.CostsByAppAccount.entries()).sort()) {
         for (const task of appCost.Tasks) {
-          workItemData[0]?.colItems.push({ text: `${appId} ${task.Summary}` });
+          workItemData[0]?.colItems.push({ text: `${appId} ${task.u_product_code}` });
           workItemData[1]?.colItems.push({
-            text: `${currencyFormat.format(task.Cost)}`,
+            text: `${currencyFormat.format(task.u_cost)}`,
           });
 
           workItemData[2]?.colItems.push({ text: `${currencyFormat.format(0)}` });
 
           workItemData[3]?.colItems.push({
-            text: `${currencyFormat.format(task.Cost)}`,
+            text: `${currencyFormat.format(task.u_cost)}`,
           });
           workItemData[4]?.colItems.push({ text: `USD` });
         }

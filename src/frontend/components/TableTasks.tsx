@@ -22,9 +22,9 @@ export const TableTasks = ({ taskList, title }: { taskList: Array<Task>; title: 
           cells: [
             { content: index.toString() },
             { content: task.CloudVendor },
-            { content: task.AccountId },
-            { content: task.Summary },
-            { content: task.Cost },
+            { content: task.u_account_id },
+            { content: task.u_product_code },
+            { content: task.u_cost },
             { content: task.Error ? `Error: ${task.Error}` : "" },
           ],
         }))}

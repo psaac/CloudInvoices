@@ -78,7 +78,7 @@ export const TableInvoices = ({ invoices }: { invoices: Invoices }) => {
                       // xcss={{ boxShadow: "elevation.shadow.raised", borderRadius: "border.radius" }}
                       >
                         <Text size="small">
-                          {task.Summary}: {task.Cost.toFixed(2)}
+                          {task.u_product_code}: {task.u_cost.toFixed(2)}
                         </Text>
                       </Box>
                     ))}
