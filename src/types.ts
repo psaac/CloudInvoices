@@ -45,6 +45,8 @@ export interface Settings {
   reportingUnitObjectAttributeCode: string;
   reportingUnitObjectAttributeAddress: string;
   reportingUnitObjectAttributeCountry: string;
+  peopleObjectTypeId: string;
+  peopleObjectAttributeEmail: string;
   sharedCostsAccounts: string;
   remitToAssetId: string;
   defaultLegalEntityId: string;
@@ -94,6 +96,8 @@ export const DefaultSettings: Settings = {
   reportingUnitObjectAttributeCode: "",
   reportingUnitObjectAttributeAddress: "",
   reportingUnitObjectAttributeCountry: "",
+  peopleObjectTypeId: "",
+  peopleObjectAttributeEmail: "",
   sharedCostsAccounts: "",
   remitToAssetId: "",
   defaultLegalEntityId: "",

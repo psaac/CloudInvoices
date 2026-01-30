@@ -12,7 +12,7 @@ class AppAccountProcess extends BaseProcess {
   reportingUnitsAssets: AssetsAndAttrs;
   remitToAsset: any;
   tasks: Task[];
-  // peopleCache: Map<string, any>;
+  peopleCache: Map<string, any>;
 
   constructor(
     billingMonth: string,
@@ -22,7 +22,7 @@ class AppAccountProcess extends BaseProcess {
     reportingUnitsAssets: AssetsAndAttrs,
     remitToAsset: any,
     tasks: Array<Task>,
-    settings: Settings
+    settings: Settings,
   ) {
     super(billingMonth, settings);
     this.tasks = tasks;
@@ -31,7 +31,7 @@ class AppAccountProcess extends BaseProcess {
     this.legalEntityAssets = legalEntityAssets;
     this.reportingUnitsAssets = reportingUnitsAssets;
     this.remitToAsset = remitToAsset;
-    // this.peopleCache = new Map<string, any>();
+    this.peopleCache = new Map<string, any>();
   }
 
   // Helper for asset attributes
@@ -67,7 +67,7 @@ class AppAccountProcess extends BaseProcess {
     // Find attribute id for Account Id
     const assetsAppAccountsCache = new Map<string, any>();
     const responseAppAccountAttr = this.applicationAssets.attrs.find(
-      (attr: any) => attr.id === this.settings.applicationObjectAttributeId
+      (attr: any) => attr.id === this.settings.applicationObjectAttributeId,
     );
     if (responseAppAccountAttr) {
       this.applicationAssets.assets.forEach((asset: any) => {
@@ -125,7 +125,7 @@ class AppAccountProcess extends BaseProcess {
             const chargebackAttr = this.getAttribute(
               applicationAsset,
               this.settings.applicationObjectAttributeChargeback,
-              this.applicationAssets.attrs
+              this.applicationAssets.attrs,
             );
             if (
               chargebackAttr &&
@@ -134,13 +134,13 @@ class AppAccountProcess extends BaseProcess {
             ) {
               // Find chargeback asset
               const chargebackAsset = assetsChargebackAccountsCache.get(
-                chargebackAttr.objectAttributeValues[0].referencedObject.id
+                chargebackAttr.objectAttributeValues[0].referencedObject.id,
               );
 
               let SAPAccount = this.getAttributeValue(
                 chargebackAsset,
                 this.settings.chargebackAccountObjectAttributeSAPAccount,
-                this.chargebackAssets.attrs
+                this.chargebackAssets.attrs,
               );
               if (!SAPAccount || SAPAccount.trim() === "") {
                 SAPAccount = this.settings.defaultSAPAccount;
@@ -150,7 +150,7 @@ class AppAccountProcess extends BaseProcess {
               const soldToAttr = this.getAttribute(
                 chargebackAsset,
                 this.settings.chargebackAccountObjectAttributeReportingUnit,
-                this.chargebackAssets.attrs
+                this.chargebackAssets.attrs,
               );
               if (
                 soldToAttr &&
@@ -163,7 +163,7 @@ class AppAccountProcess extends BaseProcess {
                 const legalEntityAttr = this.getAttribute(
                   chargebackAsset,
                   this.settings.chargebackAccountObjectAttributeChargeLE,
-                  this.chargebackAssets.attrs
+                  this.chargebackAssets.attrs,
                 );
                 if (
                   legalEntityAttr &&
@@ -171,15 +171,14 @@ class AppAccountProcess extends BaseProcess {
                   legalEntitiesCache.has(legalEntityAttr.objectAttributeValues[0].referencedObject.id)
                 ) {
                   const legalEntityAsset = legalEntitiesCache.get(
-                    legalEntityAttr.objectAttributeValues[0].referencedObject.id
+                    legalEntityAttr.objectAttributeValues[0].referencedObject.id,
                   );
                   // Retreive emails to notify from :
-                  // - Chargeback owner attribute
-                  // - Chargeback Finance controller attribute
-                  // - Chargeback Administrator attribute
-                  // - Chargeback Alternate Administrator attribute
-                  // - Chargeback Additionnal contacts attribute
-                  /*
+                  // - Chargeback owner attribute (People field)
+                  // - Chargeback Finance controller attribute (People field)
+                  // - Chargeback Administrator attribute (People field)
+                  // - Chargeback Alternate Administrator attribute (email field)
+                  // - Chargeback Additionnal contacts attribute (email field)
                   const getEmails = async (attributeId: string) => {
                     const attr = this.getAttribute(chargebackAsset, attributeId, this.chargebackAssets.attrs);
                     const values = attr?.objectAttributeValues ?? [];
@@ -200,49 +199,48 @@ class AppAccountProcess extends BaseProcess {
                         const asset = this.peopleCache.get(referencedObject.id);
 
                         const emailAttr = asset.attributes.find(
-                          (attr: any) => attr.id === this.settings.peopleObjectAttributeEmail
+                          (attr: any) => attr.id === this.settings.peopleObjectAttributeEmail,
                         );
                         if (emailAttr && emailAttr.objectAttributeValues.length > 0) {
                           return emailAttr.objectAttributeValues[0].value || null;
                         }
                         return null;
-                      })
+                      }),
                     );
 
                     return emailArrays.filter((email): email is string => email !== null);
                   };
-                  */
+
                   const emailLists = await Promise.all([
-                    /*
                     getEmails(this.settings.chargebackAccountObjectAttributeOwner),
                     getEmails(this.settings.chargebackAccountObjectAttributeFinancialController),
                     getEmails(this.settings.chargebackAccountObjectAttributeAdministrator),
-                    getEmails(this.settings.chargebackAccountObjectAttributeAlternativeAdministrators),
-                    */
-                    this.getAttributeValues(
-                      chargebackAsset,
-                      this.settings.chargebackAccountObjectAttributeOwner,
-                      this.chargebackAssets.attrs
-                    ),
-                    this.getAttributeValues(
-                      chargebackAsset,
-                      this.settings.chargebackAccountObjectAttributeFinancialController,
-                      this.chargebackAssets.attrs
-                    ),
-                    this.getAttributeValues(
-                      chargebackAsset,
-                      this.settings.chargebackAccountObjectAttributeAdministrator,
-                      this.chargebackAssets.attrs
-                    ),
+                    // getEmails(this.settings.chargebackAccountObjectAttributeAlternativeAdministrators),
+
+                    // this.getAttributeValues(
+                    //   chargebackAsset,
+                    //   this.settings.chargebackAccountObjectAttributeOwner,
+                    //   this.chargebackAssets.attrs
+                    // ),
+                    // this.getAttributeValues(
+                    //   chargebackAsset,
+                    //   this.settings.chargebackAccountObjectAttributeFinancialController,
+                    //   this.chargebackAssets.attrs
+                    // ),
+                    // this.getAttributeValues(
+                    //   chargebackAsset,
+                    //   this.settings.chargebackAccountObjectAttributeAdministrator,
+                    //   this.chargebackAssets.attrs
+                    // ),
                     this.getAttributeValues(
                       chargebackAsset,
                       this.settings.chargebackAccountObjectAttributeAlternativeAdministrators,
-                      this.chargebackAssets.attrs
+                      this.chargebackAssets.attrs,
                     ),
                     this.getAttributeValues(
                       chargebackAsset,
                       this.settings.chargebackAccountObjectAttributeAdditionalContacts,
-                      this.chargebackAssets.attrs
+                      this.chargebackAssets.attrs,
                     ),
                   ]);
                   const emailsToNotify = [...new Set(emailLists.flat())]; // Unique emails
@@ -253,78 +251,78 @@ class AppAccountProcess extends BaseProcess {
                     Customer: this.getAttributeValue(
                       chargebackAsset,
                       this.settings.chargebackAccountObjectAttributeName,
-                      this.chargebackAssets.attrs
+                      this.chargebackAssets.attrs,
                     ),
                     CostCenter: this.getAttributeValue(
                       chargebackAsset,
                       this.settings.chargebackAccountObjectAttributeChargeCC,
-                      this.chargebackAssets.attrs
+                      this.chargebackAssets.attrs,
                     ),
                     Owner: this.getAttributeValue(
                       chargebackAsset,
                       this.settings.chargebackAccountObjectAttributeOwner,
-                      this.chargebackAssets.attrs
+                      this.chargebackAssets.attrs,
                     ),
                     Controller: this.getAttributeValue(
                       chargebackAsset,
                       this.settings.chargebackAccountObjectAttributeFinancialController,
-                      this.chargebackAssets.attrs
+                      this.chargebackAssets.attrs,
                     ),
                     emailsToNotify,
                     Tenant: this.getAttributeValue(
                       chargebackAsset,
                       this.settings.chargebackAccountObjectAttributeTenant,
-                      this.chargebackAssets.attrs
+                      this.chargebackAssets.attrs,
                     ),
                     SoldToCode: this.getAttributeValue(
                       soldToAsset,
                       this.settings.reportingUnitObjectAttributeCode,
-                      this.reportingUnitsAssets.attrs
+                      this.reportingUnitsAssets.attrs,
                     ),
                     SoldToName: this.getAttributeValue(
                       soldToAsset,
                       this.settings.reportingUnitObjectAttributeName,
-                      this.reportingUnitsAssets.attrs
+                      this.reportingUnitsAssets.attrs,
                     ),
                     SoldToAddress: this.getAttributeValue(
                       soldToAsset,
                       this.settings.reportingUnitObjectAttributeAddress,
-                      this.reportingUnitsAssets.attrs
+                      this.reportingUnitsAssets.attrs,
                     ),
                     SoldToCountry: this.getAttributeValue(
                       soldToAsset,
                       this.settings.reportingUnitObjectAttributeCountry,
-                      this.reportingUnitsAssets.attrs
+                      this.reportingUnitsAssets.attrs,
                     ),
                     RemitToCode: this.getAttributeValue(
                       this.remitToAsset,
                       this.settings.reportingUnitObjectAttributeCode,
-                      this.reportingUnitsAssets.attrs
+                      this.reportingUnitsAssets.attrs,
                     ),
                     RemitToName: this.getAttributeValue(
                       this.remitToAsset,
                       this.settings.reportingUnitObjectAttributeName,
-                      this.reportingUnitsAssets.attrs
+                      this.reportingUnitsAssets.attrs,
                     ),
                     RemitToAddress: this.getAttributeValue(
                       this.remitToAsset,
                       this.settings.reportingUnitObjectAttributeAddress,
-                      this.reportingUnitsAssets.attrs
+                      this.reportingUnitsAssets.attrs,
                     ),
                     RemitToCountry: this.getAttributeValue(
                       this.remitToAsset,
                       this.settings.reportingUnitObjectAttributeCountry,
-                      this.reportingUnitsAssets.attrs
+                      this.reportingUnitsAssets.attrs,
                     ),
                     LegalEntityCode: this.getAttributeValue(
                       legalEntityAsset,
                       this.settings.legalEntityObjectAttributeCode,
-                      this.legalEntityAssets.attrs
+                      this.legalEntityAssets.attrs,
                     ),
                     LegalEntitySystem: this.getAttributeValue(
                       legalEntityAsset,
                       this.settings.legalEntityObjectAttributeSystem,
-                      this.legalEntityAssets.attrs
+                      this.legalEntityAssets.attrs,
                     ),
                     SAPAccount: SAPAccount,
                     Date: "",
@@ -343,7 +341,7 @@ class AppAccountProcess extends BaseProcess {
                   const appName = this.getAttributeValue(
                     applicationAsset,
                     this.settings.applicationObjectAttributeName,
-                    this.applicationAssets.attrs
+                    this.applicationAssets.attrs,
                   );
                   // Finally find Vendor Cost in App Account
                   const appAccountCost = vendorCost.CostsByAppAccount.get(appAccountKey) || {
@@ -392,7 +390,6 @@ class AppAccountProcess extends BaseProcess {
           taskErrors.push(task);
         }
       }
-
       return { result, taskErrors };
     } catch (error) {
       throw error;
@@ -417,6 +414,8 @@ export const loadTasks = async (cloudData: CloudData): Promise<Array<Task>> => {
   tasks.forEach((task) => {
     // Add Cloud Vendor info
     task.CloudVendor = cloudData.CloudVendor.value;
+    // Convert u_cost from string to number
+    task.u_cost = typeof task.u_cost === "string" ? parseFloat(task.u_cost) : task.u_cost;
   });
 
   return tasks;
@@ -449,7 +448,7 @@ export const fillApplicationAccounts = async ({
     reportingUnitsAssets,
     remitToAsset,
     tasks,
-    settings
+    settings,
   );
   return await processor.fillApplicationAccounts();
 };

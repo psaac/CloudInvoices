@@ -510,6 +510,31 @@ const App = () => {
                   />
                 </Inline>
               </YellowBox>
+              <YellowBox title="Employees/Contractors Assets">
+                <ObjectTypeSelect
+                  objectTypeId={settings.peopleObjectTypeId}
+                  objectSchemaId={settings.objectSchemaId}
+                  workSpaceId={settings.workSpaceId}
+                  label="Object type for contacts (Owner, Finance Controller, Admin...), must match the asset object type of these attributes"
+                  onChange={(newObjectTypeId: string) => {
+                    const newSettings = { ...settings, peopleObjectTypeId: newObjectTypeId };
+                    setSettings(newSettings);
+                  }}
+                />
+                <ObjectAttributeSelect
+                  objectAttributeId={settings.peopleObjectAttributeEmail}
+                  objectTypeId={settings.peopleObjectTypeId}
+                  workSpaceId={settings.workSpaceId}
+                  label="Email Attribute"
+                  onChange={(newObjectAttributeId: string) => {
+                    const newSettings = {
+                      ...settings,
+                      peopleObjectAttributeEmail: newObjectAttributeId,
+                    };
+                    setSettings(newSettings);
+                  }}
+                />
+              </YellowBox>
               <Inline alignInline="start" space="space.200">
                 <Box>
                   <Label labelFor="sharedCostsAccounts">Shared Costs Accounts (comma separated)</Label>
@@ -607,7 +632,7 @@ try {
   ForgeReconciler.render(
     <React.StrictMode>
       <App />
-    </React.StrictMode>
+    </React.StrictMode>,
   );
 } catch (e) {
   console.error("Error rendering Forge :", e);

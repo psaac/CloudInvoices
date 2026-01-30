@@ -326,7 +326,7 @@ const App = () => {
                           const processedInvoices = generateDBT(
                             globalContext?.apiData.settings ?? DefaultSettings,
                             invoices,
-                            userInput.sharedSecurityCost ?? 0
+                            userInput.sharedSecurityCost ?? 0,
                           );
                           setInvoices(processedInvoices);
 
@@ -459,7 +459,7 @@ try {
       <GlobalProvider>
         <App />
       </GlobalProvider>
-    </React.StrictMode>
+    </React.StrictMode>,
   );
 } catch (e) {
   console.error("Error rendering Forge :", e);
