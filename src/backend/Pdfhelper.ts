@@ -37,6 +37,7 @@ export interface CellElement {
   text: string;
   color?: Color;
   bold?: boolean;
+  bgColor?: Color | undefined;
 }
 
 export interface HeaderElement extends CellElement {
@@ -45,7 +46,7 @@ export interface HeaderElement extends CellElement {
 
 export interface HeaderAndCells {
   header: HeaderElement;
-  colItems: CellElement[];
+  rows: Array<CellElement>;
 }
 
 export interface TextElement extends CellElement {
@@ -60,9 +61,9 @@ class PDFHelper {
   pdfDoc: PDFDocument;
   font: PDFFont;
   fontBold: PDFFont;
-  pages: PDFPage[];
+  pages: Array<PDFPage>;
   currentYpos: number;
-  staticElements: PDFElement[];
+  staticElements: Array<PDFElement>;
   settings: PDFSettings;
 
   private constructor(pdfDoc: PDFDocument, font: PDFFont, fontBold: PDFFont, settings: PDFSettings) {
@@ -78,7 +79,7 @@ class PDFHelper {
   static async create(
     settings: PDFSettings = DEFAULT_PDF_SETTINGS,
     font: StandardFonts = StandardFonts.Helvetica,
-    fontBold: StandardFonts = StandardFonts.HelveticaBold
+    fontBold: StandardFonts = StandardFonts.HelveticaBold,
   ): Promise<PDFHelper> {
     const pdfDoc = await PDFDocument.create();
     const embedFont = await pdfDoc.embedFont(font);
@@ -86,11 +87,15 @@ class PDFHelper {
     return new PDFHelper(pdfDoc, embedFont, embedFontBold, settings);
   }
 
+  private addPage(): void {
+    // console.log("Adding new page", this.currentYpos);
+    this.currentYpos = PageSizes.Letter[1] - this.settings.topMargin - this.settings.headerHeight;
+    this.pages.push(this.pdfDoc.addPage(PageSizes.Letter));
+  }
+
   private currentPage(): PDFPage {
     if (this.pages.length === 0 || this.currentYPosIsPageBreak()) {
-      // console.log("Adding new page", this.currentYpos);
-      this.currentYpos = PageSizes.Letter[1] - this.settings.topMargin - this.settings.headerHeight;
-      this.pages.push(this.pdfDoc.addPage(PageSizes.Letter));
+      this.addPage();
     }
     const page = this.pages[this.pages.length - 1];
     if (!page) {
@@ -106,7 +111,8 @@ class PDFHelper {
     size: number,
     point: Point,
     bold: boolean = false,
-    lineHeight: number = 0
+    lineHeight: number = 0,
+    bgColor?: Color,
   ): void {
     page.drawText(text, {
       x: point.x ?? 0,
@@ -115,6 +121,7 @@ class PDFHelper {
       font: bold ? this.fontBold : this.font,
       color: color,
       lineHeight: lineHeight === 0 ? size * 1.2 : lineHeight,
+      ...(bgColor ? { backgroundColor: bgColor } : {}),
     });
   }
 
@@ -123,14 +130,21 @@ class PDFHelper {
   }
 
   // Returns true if pagebreak occurs after drawing the text
-  private internalDrawText(
-    text: string,
-    color: Color,
-    size: number,
-    xOffset: number = 0,
-    bold: boolean = false,
-    keepYPos: boolean = false
-  ): boolean {
+  private internalDrawText({
+    text,
+    color,
+    size,
+    xOffset = 0,
+    bold = false,
+    keepYPos = false,
+  }: {
+    text: string;
+    color: Color;
+    size: number;
+    xOffset?: number;
+    bold?: boolean;
+    keepYPos?: boolean;
+  }): boolean {
     this.internalDrawTextOnPage(
       this.currentPage(),
       text,
@@ -140,14 +154,15 @@ class PDFHelper {
         x: this.settings.leftMargin + xOffset,
         y: this.currentYpos,
       },
-      bold
+      bold,
+      0,
     );
     if (!keepYPos) this.currentYpos -= size * 1.6;
     return this.currentYPosIsPageBreak();
   }
 
   public drawH1({ text, color = rgb(0, 0, 0), bold = false }: { text: string; color?: Color; bold?: boolean }): void {
-    this.internalDrawText(text, color, 18, 0, bold);
+    this.internalDrawText({ text, color, size: 18, bold });
   }
 
   public drawText({
@@ -165,7 +180,7 @@ class PDFHelper {
     bold?: boolean;
     keepYPos?: boolean;
   }): void {
-    this.internalDrawText(text, color, size, xOffset, bold, keepYPos);
+    this.internalDrawText({ text, color, size, xOffset, bold, keepYPos });
   }
 
   public drawRectangleAndText({
@@ -215,7 +230,7 @@ class PDFHelper {
           x: this.settings.leftMargin + (point.x ?? 0) + (textElement.point.x ?? 0),
           y: point.y - textElement.point.y + height,
         },
-        textElement.bold
+        textElement.bold,
       );
     }
   }
@@ -242,7 +257,12 @@ class PDFHelper {
     let point = { x: 0, y: this.currentYpos };
 
     if (title !== undefined && title.text !== "")
-      this.internalDrawText(title.text, title.color ?? rgb(0, 0, 0), title.size ?? 12, 0, title.bold ?? false);
+      this.internalDrawText({
+        text: title.text,
+        color: title.color ?? rgb(0, 0, 0),
+        size: title.size ?? 12,
+        bold: title.bold ?? false,
+      });
 
     const drawHeader = () => {
       const page = this.currentPage(); // Will create new page if needed and update currentYpos
@@ -261,45 +281,64 @@ class PDFHelper {
       this.currentYpos += headerSize / 2 + 1;
       for (const item of items) {
         const drawHeaderItem = (headerItem: HeaderElement) => {
-          this.internalDrawText(
-            headerItem.text,
-            headerItem.color ?? rgb(0, 0, 0),
-            headerSize,
-            (point.x ?? 0) + (headerItem.x ?? 0),
-            headerItem.bold,
-            true
-          );
+          this.internalDrawText({
+            text: headerItem.text,
+            color: headerItem.color ?? rgb(0, 0, 0),
+            size: headerSize,
+            xOffset: (point.x ?? 0) + (headerItem.x ?? 0),
+            bold: headerItem.bold ?? false,
+            keepYPos: true,
+          });
         };
         // Header
         drawHeaderItem(item.header);
       }
       this.currentYpos = point.y;
     };
+
+    // Before drawing header, check if page break is needed : minimum needed height is header height + one row height
+    if (this.currentYpos - (headerSize * 2 + textSize * 1.6) < this.settings.topMargin) this.addPage();
     drawHeader();
 
     // Items
-    if (items.length > 0 && items[0] !== undefined && items[0].colItems !== undefined && items[0].colItems.length > 0) {
+    if (items.length > 0 && items[0] !== undefined && items[0].rows !== undefined && items[0].rows.length > 0) {
       // Reduce top margin below header
       this.currentYpos -= textSize + 1;
-      const itemCount = items[0].colItems.length;
+      const itemCount = items[0].rows.length;
+      // For each row
       for (let i = 0; i < itemCount; i++) {
+        // For each column
         for (let j = 0; j < items.length; j++) {
           const headerItem = items[j];
           if (headerItem) {
-            const singleItem = headerItem.colItems[i];
-            if (
-              singleItem &&
-              this.internalDrawText(
-                singleItem.text,
-                singleItem.color ?? rgb(0, 0, 0),
-                textSize,
-                (point.x ?? 0) + (headerItem.header.x ?? 0),
-                singleItem.bold,
-                j !== items.length - 1
-              )
-            ) {
-              drawHeader();
-              this.currentYpos -= textSize + 1;
+            const singleItem = headerItem.rows[i];
+            if (singleItem) {
+              const page = this.currentPage();
+              page.drawRectangle({
+                x: this.settings.leftMargin + (point.x ?? 0),
+                y: this.currentYpos - textSize * 1.6 + textSize + 1,
+                width: width === 0 ? PageSizes.Letter[0] - 2 * this.settings.leftMargin : width,
+                height: textSize * 1.6,
+                borderOpacity: 0,
+                ...(singleItem.bgColor ? { color: singleItem.bgColor } : {}),
+                opacity: singleItem.bgColor ? 0.04 : 0,
+              });
+
+              if (
+                this.internalDrawText({
+                  text: singleItem.text,
+                  color: singleItem.color ?? rgb(0, 0, 0),
+                  size: textSize,
+                  xOffset: (point.x ?? 0) + (headerItem.header.x ?? 0),
+                  bold: singleItem.bold ?? false,
+                  keepYPos: j !== items.length - 1,
+                }) &&
+                i < itemCount - 1
+              ) {
+                // Check if there is still data to draw on next rows
+                drawHeader();
+                this.currentYpos -= textSize + 1;
+              }
             }
           }
         }
@@ -332,7 +371,7 @@ class PDFHelper {
               element.color ?? rgb(0, 0, 0),
               element.size ?? 12,
               point,
-              element.bold
+              element.bold,
             );
             break;
           case "IMAGE":
@@ -352,7 +391,7 @@ class PDFHelper {
               element.color ?? rgb(0, 0, 0),
               element.size ?? 12,
               point,
-              element.bold
+              element.bold,
             );
             break;
         }

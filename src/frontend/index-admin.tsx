@@ -254,7 +254,7 @@ const App = () => {
                     objectAttributeId={settings.chargebackAccountObjectAttributeName}
                     objectTypeId={settings.chargebackAccountObjectTypeId}
                     workSpaceId={settings.workSpaceId}
-                    label="CB Account Name"
+                    label="Account Name"
                     onChange={(newObjectAttributeId: string) => {
                       const newSettings = { ...settings, chargebackAccountObjectAttributeName: newObjectAttributeId };
                       setSettings(newSettings);
@@ -264,7 +264,7 @@ const App = () => {
                     objectAttributeId={settings.chargebackAccountObjectAttributeChargeCC}
                     objectTypeId={settings.chargebackAccountObjectTypeId}
                     workSpaceId={settings.workSpaceId}
-                    label="CB Account Charge CC"
+                    label="Cost Center"
                     onChange={(newObjectAttributeId: string) => {
                       const newSettings = {
                         ...settings,
@@ -277,12 +277,22 @@ const App = () => {
                     objectAttributeId={settings.chargebackAccountObjectAttributeChargeLE}
                     objectTypeId={settings.chargebackAccountObjectTypeId}
                     workSpaceId={settings.workSpaceId}
-                    label="CB Account Charge LE"
+                    label="Legal Entity"
                     onChange={(newObjectAttributeId: string) => {
                       const newSettings = {
                         ...settings,
                         chargebackAccountObjectAttributeChargeLE: newObjectAttributeId,
                       };
+                      setSettings(newSettings);
+                    }}
+                  />
+                  <ObjectAttributeSelect
+                    objectAttributeId={settings.chargebackAccountObjectAttributeActive}
+                    objectTypeId={settings.chargebackAccountObjectTypeId}
+                    workSpaceId={settings.workSpaceId}
+                    label="Active Flag"
+                    onChange={(newObjectAttributeId: string) => {
+                      const newSettings = { ...settings, chargebackAccountObjectAttributeActive: newObjectAttributeId };
                       setSettings(newSettings);
                     }}
                   />
@@ -292,7 +302,7 @@ const App = () => {
                     objectAttributeId={settings.chargebackAccountObjectAttributeTenant}
                     objectTypeId={settings.chargebackAccountObjectTypeId}
                     workSpaceId={settings.workSpaceId}
-                    label="CB Account Tenant"
+                    label="Tenant"
                     onChange={(newObjectAttributeId: string) => {
                       const newSettings = { ...settings, chargebackAccountObjectAttributeTenant: newObjectAttributeId };
                       setSettings(newSettings);
@@ -302,7 +312,7 @@ const App = () => {
                     objectAttributeId={settings.chargebackAccountObjectAttributeOwner}
                     objectTypeId={settings.chargebackAccountObjectTypeId}
                     workSpaceId={settings.workSpaceId}
-                    label="CB Account Owner"
+                    label="Owner"
                     onChange={(newObjectAttributeId: string) => {
                       const newSettings = { ...settings, chargebackAccountObjectAttributeOwner: newObjectAttributeId };
                       setSettings(newSettings);
@@ -312,7 +322,7 @@ const App = () => {
                     objectAttributeId={settings.chargebackAccountObjectAttributeFinancialController}
                     objectTypeId={settings.chargebackAccountObjectTypeId}
                     workSpaceId={settings.workSpaceId}
-                    label="CB Account Financial Controller"
+                    label="Financial Controller"
                     onChange={(newObjectAttributeId: string) => {
                       const newSettings = {
                         ...settings,
@@ -325,7 +335,7 @@ const App = () => {
                     objectAttributeId={settings.chargebackAccountObjectAttributeReportingUnit}
                     objectTypeId={settings.chargebackAccountObjectTypeId}
                     workSpaceId={settings.workSpaceId}
-                    label="CB Account Reporting Unit"
+                    label="Reporting Unit"
                     onChange={(newObjectAttributeId: string) => {
                       const newSettings = {
                         ...settings,
@@ -509,6 +519,31 @@ const App = () => {
                     }}
                   />
                 </Inline>
+              </YellowBox>
+              <YellowBox title="Cost Center Assets">
+                <ObjectTypeSelect
+                  objectTypeId={settings.costCenterObjectTypeId}
+                  objectSchemaId={settings.objectSchemaId}
+                  workSpaceId={settings.workSpaceId}
+                  label="Object type for cost centers"
+                  onChange={(newObjectTypeId: string) => {
+                    const newSettings = { ...settings, costCenterObjectTypeId: newObjectTypeId };
+                    setSettings(newSettings);
+                  }}
+                />
+                <ObjectAttributeSelect
+                  objectAttributeId={settings.costCenterObjectAttributeCode}
+                  objectTypeId={settings.costCenterObjectTypeId}
+                  workSpaceId={settings.workSpaceId}
+                  label="Code Attribute"
+                  onChange={(newObjectAttributeId: string) => {
+                    const newSettings = {
+                      ...settings,
+                      costCenterObjectAttributeCode: newObjectAttributeId,
+                    };
+                    setSettings(newSettings);
+                  }}
+                />
               </YellowBox>
               <YellowBox title="Employees/Contractors Assets">
                 <ObjectTypeSelect

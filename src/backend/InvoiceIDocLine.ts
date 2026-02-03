@@ -9,14 +9,15 @@ export class InvoiceIDocLine {
     type: "Credit" | "Debit",
     costCenter: string,
     vendor: string,
-    index = "01"
+    docType: "SA" | "KR" | "DA",
+    index = "01",
   ): Array<string> => {
     return [
       system,
       company,
       companyTo,
       invoice.Date,
-      "SA",
+      docType,
       `${invoice.ChargebackIdStr}-${index}`,
       invoice.Customer,
       type,
@@ -37,9 +38,10 @@ export class InvoiceIDocLine {
     companyTo: string,
     costCenter: string,
     vendor: string,
-    index = "01"
+    docType: "SA" | "KR" | "DA",
+    index = "01",
   ): Array<string> => {
-    return this.getLine(invoice, system, company, companyTo, "Credit", costCenter, vendor, index);
+    return this.getLine(invoice, system, company, companyTo, "Credit", costCenter, vendor, docType, index);
   };
 
   public static getDebitLine = (
@@ -49,9 +51,10 @@ export class InvoiceIDocLine {
     companyTo: string,
     costCenter: string,
     vendor: string,
-    index = "01"
+    docType: "SA" | "KR" | "DA",
+    index = "01",
   ): Array<string> => {
-    return this.getLine(invoice, system, company, companyTo, "Debit", costCenter, vendor, index);
+    return this.getLine(invoice, system, company, companyTo, "Debit", costCenter, vendor, docType, index);
   };
 
   public static getHeader = (): Array<string> => {

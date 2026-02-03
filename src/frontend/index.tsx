@@ -28,6 +28,7 @@ import { Invoices, Invoice, generateInvoicesAndIDFiles } from "./Invoices";
 import { InvoiceLine } from "../backend/InvoiceLine";
 import { generateDBT } from "./DBT";
 import { InvoiceLinesTable } from "./components/TableInvoiceLines";
+import { DownloadHelper } from "./downloadHelper";
 
 enum CurrentStep {
   None = 0,
@@ -43,8 +44,10 @@ const emptyInvoices: Invoices = {
   BillingMonth: "",
   TotalAmount: 0,
   NetworkSharedCosts: 0,
+  SecuritySharedCosts: 0,
   TotalByVendor: new Map<string, number>(), // Key is Vendor Name
   Invoices: new Map<string, Invoice>(),
+  GrandTotal: 0,
 };
 const App = () => {
   const globalContext: GlobalContextType | null = useContext(GlobalContext);
@@ -159,7 +162,7 @@ const App = () => {
     initProgress("Loading assets...");
     setTaskErrors([]);
     try {
-      const totalSteps = selectedCloudData.length + 4;
+      const totalSteps = selectedCloudData.length + 5;
 
       const fetchedChargebackAssets = await invoke<AssetsAndAttrs>("loadAssets", {
         workSpaceId: globalContext?.apiData.settings.workSpaceId,
@@ -185,6 +188,12 @@ const App = () => {
       });
       updateProgress(4 / totalSteps);
 
+      const fetchedCostCentersAssets = await invoke<AssetsAndAttrs>("loadAssets", {
+        workSpaceId: globalContext?.apiData.settings.workSpaceId,
+        objectTypeId: globalContext?.apiData.settings.costCenterObjectTypeId,
+      });
+      updateProgress(5 / totalSteps);
+
       // Get "Remit To" Reporting unit
       const remitToAsset = await invoke<any>("getAssetById", {
         workSpaceId: globalContext?.apiData.settings.workSpaceId,
@@ -193,7 +202,7 @@ const App = () => {
 
       // For all selected cloud data, fill application and chargeback accounts
       const tasks: Array<Task> = [];
-      let index = 4;
+      let index = 5;
       for (const cloudDataItem of selectedCloudData) {
         setCurrentProgressText(`Filling accounts for ${cloudDataItem.CloudVendor.value}...`);
         tasks.push(...(await loadTasks(cloudDataItem)));
@@ -207,10 +216,12 @@ const App = () => {
         chargebackAssets: fetchedChargebackAssets,
         reportingUnitsAssets: fetchedReportingUnitsAssets,
         legalEntityAssets: fetchedLegalEntitiesAssets,
+        costCentersAssets: fetchedCostCentersAssets,
         remitToAsset,
         tasks,
         settings: globalContext?.apiData.settings ?? DefaultSettings,
       });
+      result.result.SecuritySharedCosts = Number(userInput.sharedSecurityCost) || 0;
       setInvoices(result.result);
       setTaskErrors(result.taskErrors);
 
@@ -231,6 +242,25 @@ const App = () => {
       updatedSelectedCloudData = updatedSelectedCloudData.filter((item) => item.Key !== cloudData.Key);
     }
     setSelectedCloudData(updatedSelectedCloudData);
+  };
+
+  // Download the Excel file containing input data
+  const downloadRawData = async () => {
+    const downloadHelper = new DownloadHelper(
+      (text: string) => initProgress(text),
+      (text: string) => setCurrentProgressText(text),
+      (progress: number) => updateProgress(progress),
+    );
+    await downloadHelper.downloadRawData(selectedCloudData, userInput.billingMonth);
+  };
+
+  const downloadDBT = async () => {
+    const downloadHelper = new DownloadHelper(
+      (text: string) => initProgress(text),
+      (text: string) => setCurrentProgressText(text),
+      (progress: number) => updateProgress(progress),
+    );
+    await downloadHelper.downloadDBT(invoices, userInput.billingMonth);
   };
 
   try {
@@ -284,10 +314,36 @@ const App = () => {
                   isRequired
                 />
               </Box>
+              {currentStep === CurrentStep.DataFetched && allVendorsSelected(selectedCloudData, cloudVendors) && (
+                <Box padding="space.100">
+                  <Button
+                    appearance="primary"
+                    onClick={async () => {
+                      await downloadRawData();
+                    }}
+                    isDisabled={loading}
+                  >
+                    Download input data
+                  </Button>
+                </Box>
+              )}
               {currentStep === CurrentStep.DataFetched && !allVendorsSelected(selectedCloudData, cloudVendors) && (
                 <SectionMessage appearance="warning">
                   <Text>Select all vendors, once.</Text>
                 </SectionMessage>
+              )}
+              {currentStep === CurrentStep.DBTComputed && (
+                <Box padding="space.100">
+                  <Button
+                    appearance="primary"
+                    onClick={async () => {
+                      await downloadDBT();
+                    }}
+                    isDisabled={loading}
+                  >
+                    Download DBT
+                  </Button>
+                </Box>
               )}
             </Inline>
 
@@ -326,7 +382,6 @@ const App = () => {
                           const processedInvoices = generateDBT(
                             globalContext?.apiData.settings ?? DefaultSettings,
                             invoices,
-                            userInput.sharedSecurityCost ?? 0,
                           );
                           setInvoices(processedInvoices);
 

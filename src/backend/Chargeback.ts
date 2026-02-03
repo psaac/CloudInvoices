@@ -5,7 +5,7 @@ import { Fields } from "./Fields";
 import { attachToIssue } from "./jira/attachments";
 import { Invoice } from "../frontend/Invoices";
 import { getChargebackIdStr, InvoiceLine } from "./InvoiceLine";
-import { CellElement, DEFAULT_PDF_SETTINGS, HeaderAndCells, PDFElementType, PDFHelper } from "../backend/Pdfhelper";
+import { DEFAULT_PDF_SETTINGS, HeaderAndCells, PDFElementType, PDFHelper } from "../backend/Pdfhelper";
 import { rgb } from "pdf-lib";
 import { VANTIVA_LOGO } from "../backend/img/vantivaLogo";
 import { InvoiceIDocLine } from "./InvoiceIDocLine";
@@ -15,14 +15,14 @@ export class Chargeback {
   public static getInvoiceLinesByBillingMonth = async (
     billingMonth: string,
     settings: Settings,
-    baseUrl: string
+    baseUrl: string,
   ): Promise<Array<InvoiceLine>> => {
     const result: Array<InvoiceLine> = [];
 
     // Search for existing invoice & sub-tasks
     const existingItems = await searchWorkItems({
       jql: `project = ${settings.spaceId} AND cf[${Fields.fieldId(
-        settings.inputFieldBillingMonth
+        settings.inputFieldBillingMonth,
       )}] ~ ${billingMonth} AND issueType = ${settings.targetWorkTypeId}`,
       fields: ["summary", "sub-tasks", "status"],
     });
@@ -74,7 +74,7 @@ export class Chargeback {
 
     // If work item already exists, return it (with subTasks & attachments)
     const jql = `project = ${settings.spaceId} AND cf[${Fields.fieldId(
-      settings.inputFieldBillingMonth
+      settings.inputFieldBillingMonth,
     )}] ~ ${billingMonth} AND issueType = ${settings.targetWorkTypeId}`;
     const existingItems = await searchWorkItems({ jql });
     for (const item of existingItems) {
@@ -94,9 +94,9 @@ export class Chargeback {
     // Get last chargeback number
     const existingInvoiceItems = await searchWorkItems({
       jql: `project = ${settings.spaceId} AND cf[${Fields.fieldId(
-        settings.inputFieldChargebackId
+        settings.inputFieldChargebackId,
       )}] IS NOT EMPTY AND issueType = ${settings.invoiceWorkTypeId} ORDER BY cf[${Fields.fieldId(
-        settings.inputFieldChargebackId
+        settings.inputFieldChargebackId,
       )}] DESC`,
       fields: [settings.inputFieldChargebackId],
       maxResults: 1,
@@ -161,7 +161,9 @@ export class Chargeback {
 
     const pdfSettings = DEFAULT_PDF_SETTINGS;
     pdfSettings.headerHeight = 40;
+    const BLACK = rgb(1, 1, 1);
     const BLUE = rgb(0.28, 0.33, 0.55);
+    const GREY = rgb(0.1, 0.1, 0.1);
 
     const pdfHelper = await PDFHelper.create(pdfSettings);
 
@@ -272,7 +274,7 @@ export class Chargeback {
       textElements: [
         {
           text: `SOLD TO\nCustomer:\nAddress:${"\n".repeat(
-            soldToLines.length
+            soldToLines.length,
           )}\nProject:\nCost Center:\nOwner:\nController:`,
           point: { x: 5, y: 15 },
           bold: true,
@@ -312,74 +314,77 @@ export class Chargeback {
 
     // Get group data
     const groupDataItems: HeaderAndCells[] = [
-      { header: { text: "Vendor", x: 5, color: rgb(1, 1, 1) }, colItems: [] as CellElement[] },
+      { header: { text: "Vendor", x: 5, color: BLACK }, rows: [] },
       {
-        header: { text: "Total Amt", x: 300, color: rgb(1, 1, 1) },
-        colItems: [] as CellElement[],
+        header: { text: "Total Amt", x: 300, color: BLACK },
+        rows: [],
       },
       {
-        header: { text: "Currency", x: 400, color: rgb(1, 1, 1) },
-        colItems: [] as CellElement[],
+        header: { text: "Currency", x: 400, color: BLACK },
+        rows: [],
       },
     ];
 
     for (const [vendorName, vendorCost] of Array.from(invoice.CostsByVendor.entries()).sort()) {
       // Total
-      groupDataItems[0]?.colItems.push({ text: vendorName });
-      groupDataItems[1]?.colItems.push({
+      groupDataItems[0]?.rows.push({ text: vendorName });
+      groupDataItems[1]?.rows.push({
         text: `${currencyFormat.format(vendorCost.TotalAmount)}`,
       });
-      groupDataItems[2]?.colItems.push({ text: `USD` });
-
+      groupDataItems[2]?.rows.push({ text: `USD` });
       // Detail
       const workItemData: HeaderAndCells[] = [
         {
-          header: { text: vendorName, x: 5, color: rgb(1, 1, 1) },
-          colItems: [] as CellElement[],
+          header: { text: vendorName, x: 5, color: BLACK },
+          rows: [],
         },
         {
-          header: { text: `Charges`, x: 310, color: rgb(1, 1, 1) },
-          colItems: [] as CellElement[],
+          header: { text: `Charges`, x: 310, color: BLACK },
+          rows: [],
         },
         {
-          header: { text: `Discount`, x: 360, color: rgb(1, 1, 1) },
-          colItems: [] as CellElement[],
+          header: { text: `Discount`, x: 360, color: BLACK },
+          rows: [],
         },
         {
-          header: { text: `Total`, x: 410, color: rgb(1, 1, 1) },
-          colItems: [] as CellElement[],
+          header: { text: `Total`, x: 410, color: BLACK },
+          rows: [],
         },
         {
-          header: { text: `Currency`, x: 460, color: rgb(1, 1, 1) },
-          colItems: [] as CellElement[],
+          header: { text: `Currency`, x: 460, color: BLACK },
+          rows: [],
         },
       ];
 
+      let even = false;
       for (const [appId, appCost] of Array.from(vendorCost.CostsByAppAccount.entries()).sort()) {
         for (const task of appCost.Tasks) {
-          workItemData[0]?.colItems.push({ text: `${appId} ${task.u_product_code}` });
-          workItemData[1]?.colItems.push({
+          workItemData[0]?.rows.push({ text: `${appId} ${task.u_product_code}`, bgColor: even ? GREY : undefined });
+          workItemData[1]?.rows.push({
             text: `${currencyFormat.format(task.u_cost)}`,
+            bgColor: even ? GREY : undefined,
           });
 
-          workItemData[2]?.colItems.push({ text: `${currencyFormat.format(0)}` });
+          workItemData[2]?.rows.push({ text: `${currencyFormat.format(0)}`, bgColor: even ? GREY : undefined });
 
-          workItemData[3]?.colItems.push({
+          workItemData[3]?.rows.push({
             text: `${currencyFormat.format(task.u_cost)}`,
+            bgColor: even ? GREY : undefined,
           });
-          workItemData[4]?.colItems.push({ text: `USD` });
+          workItemData[4]?.rows.push({ text: `USD`, bgColor: even ? GREY : undefined });
         }
+        even = !even;
       }
 
       linesDataItems.set(vendorName, workItemData);
     }
     // Grand Total
-    groupDataItems[0]?.colItems.push({ text: `TOTAL`, bold: true });
-    groupDataItems[1]?.colItems.push({
+    groupDataItems[0]?.rows.push({ text: `TOTAL`, bold: true });
+    groupDataItems[1]?.rows.push({
       text: `${currencyFormat.format(invoice.TotalAmount ?? 0)}`,
       bold: true,
     });
-    groupDataItems[2]?.colItems.push({ text: `USD`, bold: true });
+    groupDataItems[2]?.rows.push({ text: `USD`, bold: true });
 
     // Draw table containing summary
     pdfHelper.drawTable({
@@ -417,7 +422,6 @@ export class Chargeback {
     const defaultChargeLE = `${defaultLegalEntityCode} (${defaultLegalEntitySystem})`;
     const invoiceChargeLE = `${invoice.LegalEntityCode} (${invoice.LegalEntitySystem})`;
     const directBill = invoiceChargeLE === defaultChargeLE;
-    // const infos01 = InvoiceIDocLine.getSystemAndCompany(settings.defaultChargeLE);
     const iDoc01Lines = [
       InvoiceIDocLine.getHeader(),
       InvoiceIDocLine.getCreditLine(
@@ -426,7 +430,8 @@ export class Chargeback {
         defaultLegalEntityCode,
         invoiceChargeLE,
         settings.defaultCostCenter,
-        ""
+        "",
+        directBill ? "SA" : "DA",
       ),
       InvoiceIDocLine.getDebitLine(
         invoice,
@@ -434,7 +439,8 @@ export class Chargeback {
         defaultLegalEntityCode,
         invoiceChargeLE,
         directBill ? invoice.CostCenter : "",
-        !directBill ? `CL${invoice.SoldToCode}` : ""
+        !directBill ? `CL${invoice.SoldToCode}` : "",
+        directBill ? "SA" : "DA",
       ),
     ];
     const text01 = iDoc01Lines.map((line) => line.join("\t")).join("\n");
@@ -447,7 +453,6 @@ export class Chargeback {
     });
 
     if (!directBill) {
-      // const infos02 = InvoiceIDocLine.getSystemAndCompany(invoice.ChargeLE);
       const iDoc02Lines = [
         InvoiceIDocLine.getHeader(),
         InvoiceIDocLine.getCreditLine(
@@ -456,9 +461,9 @@ export class Chargeback {
           invoice.LegalEntityCode,
           defaultChargeLE,
           "",
-          //settings.defaultVendor,
           `VL${invoice.RemitToCode}`,
-          "02"
+          "KR",
+          "02",
         ),
         InvoiceIDocLine.getDebitLine(
           invoice,
@@ -467,7 +472,8 @@ export class Chargeback {
           defaultChargeLE,
           invoice.CostCenter,
           "",
-          "02"
+          "KR",
+          "02",
         ),
       ];
       const text02 = iDoc02Lines.map((line) => line.join("\t")).join("\n");

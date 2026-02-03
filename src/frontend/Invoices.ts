@@ -19,6 +19,7 @@ export interface VendorCost {
 export interface Invoice {
   ChargebackId?: number; // To be generated
   ChargebackIdStr?: string; // To be generated
+  Ignore: boolean | false;
   CustomerId: string; // Chargeback Account ID
   Customer: string; // Project on invoice
   BillingMonth: string;
@@ -48,8 +49,11 @@ export interface Invoices {
   BillingMonth: string;
   TotalAmount: number | 0;
   NetworkSharedCosts: number | 0;
+  SecuritySharedCosts: number | 0;
   TotalByVendor: Map<string, number>; // Key is Vendor Name
   Invoices: Map<string, Invoice>; // Key is CustomerId
+  // TotalIgnoredCosts: number | 0;
+  GrandTotal: number | 0;
 }
 
 export const generateInvoicesAndIDFiles = async ({
@@ -70,10 +74,10 @@ export const generateInvoicesAndIDFiles = async ({
     assetId: settings.defaultLegalEntityId,
   });
   const defaultLegalEntityCode = defaultLegalEntityAsset.attributes.find(
-    (attr: any) => attr.id === settings.legalEntityObjectAttributeCode
+    (attr: any) => attr.id === settings.legalEntityObjectAttributeCode,
   ).objectAttributeValues[0].value;
   const defaultLegalEntitySystem = defaultLegalEntityAsset.attributes.find(
-    (attr: any) => attr.id === settings.legalEntityObjectAttributeSystem
+    (attr: any) => attr.id === settings.legalEntityObjectAttributeSystem,
   ).objectAttributeValues[0].value;
 
   const result: Array<InvoiceLine> = [];

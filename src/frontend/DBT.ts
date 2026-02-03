@@ -5,11 +5,9 @@ import { Settings } from "../types";
 
 class DBTProcess extends BaseProcess {
   invoices: Invoices;
-  cloudSecurityTotalCost: number;
-  constructor(settings: Settings, invoices: Invoices, cloudSecurityTotalCost: number) {
+  constructor(settings: Settings, invoices: Invoices) {
     super(invoices.BillingMonth, settings);
     this.invoices = invoices;
-    this.cloudSecurityTotalCost = cloudSecurityTotalCost;
   }
 
   private isNetworkSharedCost = (invoice: Invoice): boolean => {
@@ -27,14 +25,14 @@ class DBTProcess extends BaseProcess {
             const existingCosts = sharedCostsByVendor.get(vendorCost.Vendor) || 0;
             sharedCostsByVendor.set(vendorCost.Vendor, existingCosts + vendorCost.TotalAmount);
             this.invoices.NetworkSharedCosts += vendorCost.TotalAmount;
-          } else {
+          } else if (!invoice.Ignore) {
             let existing = this.invoices.TotalByVendor.get(cloudVendor) || 0;
             this.invoices.TotalByVendor.set(cloudVendor, existing + vendorCost.TotalAmount);
             this.invoices.TotalAmount += vendorCost.TotalAmount;
           }
         });
         // Remove invoice from list
-        if (this.isNetworkSharedCost(invoice)) {
+        if (this.isNetworkSharedCost(invoice) || invoice.Ignore) {
           this.invoices.Invoices.delete(invoice.CustomerId);
         }
       } catch (error: any) {
@@ -61,7 +59,7 @@ class DBTProcess extends BaseProcess {
             vendorCost.CostsByAppAccount.forEach((appAccountCost, appId) => {
               // Find total cost of this vendor to compute weight and apply shared cost
               const sharedNetworkCost = round2(
-                (appAccountCost.TotalAmount / (this.invoices.TotalByVendor.get(vendorName) || 1)) * sharedCost
+                (appAccountCost.TotalAmount / (this.invoices.TotalByVendor.get(vendorName) || 1)) * sharedCost,
               );
               //   allocatedNetworkCost += sharedNetworkCost;
 
@@ -85,6 +83,7 @@ class DBTProcess extends BaseProcess {
                     Seller: "Cloud-Shared-Costs",
                     u_account_id: appAccountCost.AppId,
                     CloudVendor: CLOUD_NETWORK_SHARED_COST,
+                    BatchId: "",
                   },
                 ],
               });
@@ -98,7 +97,7 @@ class DBTProcess extends BaseProcess {
                 //   `Error: App Account ${appId} not found in invoice ${invoice.Customer} when adding shared network cost to TotalByAppAccount`
                 // );
                 throw new Error(
-                  `Error: App Account ${appId} not found in invoice ${invoice.Customer} when adding shared network cost to TotalByAppAccount`
+                  `Error: App Account ${appId} not found in invoice ${invoice.Customer} when adding shared network cost to TotalByAppAccount`,
                 );
               }
 
@@ -146,7 +145,7 @@ class DBTProcess extends BaseProcess {
         // Find weight
         const sharedSecurityCost = round2(
           (appAccountCost.TotalAmount / (this.invoices.TotalAmount + this.invoices.NetworkSharedCosts)) *
-            this.cloudSecurityTotalCost
+            this.invoices.SecuritySharedCosts,
         );
         // allocatedSecurityCost += sharedSecurityCost;
 
@@ -169,6 +168,7 @@ class DBTProcess extends BaseProcess {
               Seller: "Cloud-Security",
               u_account_id: appAccountCost.AppId,
               CloudVendor: CLOUD_SECURITY_VENDOR,
+              BatchId: "",
             },
           ],
         });
@@ -197,11 +197,14 @@ class DBTProcess extends BaseProcess {
     //   )}`
     // );
 
+    this.invoices.GrandTotal =
+      this.invoices.TotalAmount + this.invoices.NetworkSharedCosts + this.invoices.SecuritySharedCosts;
+
     return this.invoices;
   };
 }
 
-export const generateDBT = (settings: Settings, invoices: Invoices, sharedSecurityCost: number) => {
-  const processor = new DBTProcess(settings, invoices, sharedSecurityCost);
+export const generateDBT = (settings: Settings, invoices: Invoices) => {
+  const processor = new DBTProcess(settings, invoices);
   return processor.generateDBT();
 };

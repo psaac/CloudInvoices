@@ -10,6 +10,7 @@ class AppAccountProcess extends BaseProcess {
   chargebackAssets: AssetsAndAttrs;
   legalEntityAssets: AssetsAndAttrs;
   reportingUnitsAssets: AssetsAndAttrs;
+  costCentersAssets: AssetsAndAttrs;
   remitToAsset: any;
   tasks: Task[];
   peopleCache: Map<string, any>;
@@ -20,6 +21,7 @@ class AppAccountProcess extends BaseProcess {
     chargebackAssets: AssetsAndAttrs,
     legalEntityAssets: AssetsAndAttrs,
     reportingUnitsAssets: AssetsAndAttrs,
+    costCentersAssets: AssetsAndAttrs,
     remitToAsset: any,
     tasks: Array<Task>,
     settings: Settings,
@@ -30,6 +32,7 @@ class AppAccountProcess extends BaseProcess {
     this.chargebackAssets = chargebackAssets;
     this.legalEntityAssets = legalEntityAssets;
     this.reportingUnitsAssets = reportingUnitsAssets;
+    this.costCentersAssets = costCentersAssets;
     this.remitToAsset = remitToAsset;
     this.peopleCache = new Map<string, any>();
   }
@@ -58,8 +61,10 @@ class AppAccountProcess extends BaseProcess {
       BillingMonth: this.billingMonth,
       TotalAmount: 0,
       NetworkSharedCosts: 0,
+      SecuritySharedCosts: 0,
       Invoices: new Map<string, Invoice>(),
       TotalByVendor: new Map<string, number>(),
+      GrandTotal: 0,
     };
     const taskErrors: Array<Task> = [];
 
@@ -95,6 +100,12 @@ class AppAccountProcess extends BaseProcess {
     const legalEntitiesCache = new Map<string, any>();
     this.legalEntityAssets.assets.forEach((asset: any) => {
       legalEntitiesCache.set(asset.id, asset);
+    });
+
+    // Build Cost Centers cache by internal id
+    const costCentersCache = new Map<string, any>();
+    this.costCentersAssets.assets.forEach((asset: any) => {
+      costCentersCache.set(asset.id, asset);
     });
 
     try {
@@ -137,6 +148,20 @@ class AppAccountProcess extends BaseProcess {
                 chargebackAttr.objectAttributeValues[0].referencedObject.id,
               );
 
+              // Check if asset is active
+              const isActiveAttr = this.getAttribute(
+                chargebackAsset,
+                this.settings.chargebackAccountObjectAttributeActive,
+                this.chargebackAssets.attrs,
+              );
+              const isActive = isActiveAttr?.objectAttributeValues[0]?.displayValue === "Active";
+              if (!isActive) {
+                // result.TotalIgnoredCosts += task.u_cost;
+                task.Error = `Chargeback Account ${chargebackAttr.objectAttributeValues[0].displayValue} is not Active`;
+                taskErrors.push(task);
+                continue;
+              }
+
               let SAPAccount = this.getAttributeValue(
                 chargebackAsset,
                 this.settings.chargebackAccountObjectAttributeSAPAccount,
@@ -145,6 +170,23 @@ class AppAccountProcess extends BaseProcess {
               if (!SAPAccount || SAPAccount.trim() === "") {
                 SAPAccount = this.settings.defaultSAPAccount;
               }
+
+              // Find Cost Center Asset
+              const costCenterAttr = this.getAttribute(
+                chargebackAsset,
+                this.settings.chargebackAccountObjectAttributeChargeCC,
+                this.chargebackAssets.attrs,
+              );
+              if (
+                !costCenterAttr ||
+                costCenterAttr.objectAttributeValues.length === 0 ||
+                !costCentersCache.has(costCenterAttr.objectAttributeValues[0].referencedObject.id)
+              ) {
+                task.Error = `Cost Center not found for Chargeback Account ${chargebackAsset.id}`;
+                taskErrors.push(task);
+                continue;
+              }
+              const costCenterAsset = costCentersCache.get(costCenterAttr.objectAttributeValues[0].referencedObject.id);
 
               // Find Reporting Unit Asset (Sold To & Remit To)
               const soldToAttr = this.getAttribute(
@@ -246,6 +288,8 @@ class AppAccountProcess extends BaseProcess {
                   const emailsToNotify = [...new Set(emailLists.flat())]; // Unique emails
                   // Find matching Invoice
                   const invoice = result.Invoices.get(chargebackAsset.id) || {
+                    // Ignore: !isActive,
+                    Ignore: false,
                     CustomerId: chargebackAsset.id,
                     BillingMonth: this.billingMonth,
                     Customer: this.getAttributeValue(
@@ -254,9 +298,9 @@ class AppAccountProcess extends BaseProcess {
                       this.chargebackAssets.attrs,
                     ),
                     CostCenter: this.getAttributeValue(
-                      chargebackAsset,
-                      this.settings.chargebackAccountObjectAttributeChargeCC,
-                      this.chargebackAssets.attrs,
+                      costCenterAsset,
+                      this.settings.costCenterObjectAttributeCode,
+                      this.costCentersAssets.attrs,
                     ),
                     Owner: this.getAttributeValue(
                       chargebackAsset,
@@ -416,6 +460,7 @@ export const loadTasks = async (cloudData: CloudData): Promise<Array<Task>> => {
     task.CloudVendor = cloudData.CloudVendor.value;
     // Convert u_cost from string to number
     task.u_cost = typeof task.u_cost === "string" ? parseFloat(task.u_cost) : task.u_cost;
+    task.BatchId = cloudData.BatchId;
   });
 
   return tasks;
@@ -427,6 +472,7 @@ export const fillApplicationAccounts = async ({
   chargebackAssets,
   legalEntityAssets,
   reportingUnitsAssets,
+  costCentersAssets,
   remitToAsset,
   tasks,
   settings,
@@ -436,6 +482,7 @@ export const fillApplicationAccounts = async ({
   chargebackAssets: AssetsAndAttrs;
   legalEntityAssets: AssetsAndAttrs;
   reportingUnitsAssets: AssetsAndAttrs;
+  costCentersAssets: AssetsAndAttrs;
   remitToAsset: any;
   tasks: Array<Task>;
   settings: Settings;
@@ -446,6 +493,7 @@ export const fillApplicationAccounts = async ({
     chargebackAssets,
     legalEntityAssets,
     reportingUnitsAssets,
+    costCentersAssets,
     remitToAsset,
     tasks,
     settings,

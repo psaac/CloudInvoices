@@ -36,6 +36,7 @@ export interface Settings {
   chargebackAccountObjectAttributeAdditionalContacts: string;
   chargebackAccountObjectAttributeReportingUnit: string;
   chargebackAccountObjectAttributeSAPAccount: string;
+  chargebackAccountObjectAttributeActive: string;
   legalEntitiesObjectTypeId: string;
   legalEntityObjectAttributeName: string;
   legalEntityObjectAttributeCode: string;
@@ -45,6 +46,8 @@ export interface Settings {
   reportingUnitObjectAttributeCode: string;
   reportingUnitObjectAttributeAddress: string;
   reportingUnitObjectAttributeCountry: string;
+  costCenterObjectTypeId: string;
+  costCenterObjectAttributeCode: string;
   peopleObjectTypeId: string;
   peopleObjectAttributeEmail: string;
   sharedCostsAccounts: string;
@@ -87,6 +90,7 @@ export const DefaultSettings: Settings = {
   chargebackAccountObjectAttributeAdditionalContacts: "",
   chargebackAccountObjectAttributeReportingUnit: "",
   chargebackAccountObjectAttributeSAPAccount: "",
+  chargebackAccountObjectAttributeActive: "",
   legalEntitiesObjectTypeId: "",
   legalEntityObjectAttributeName: "",
   legalEntityObjectAttributeCode: "",
@@ -96,6 +100,8 @@ export const DefaultSettings: Settings = {
   reportingUnitObjectAttributeCode: "",
   reportingUnitObjectAttributeAddress: "",
   reportingUnitObjectAttributeCountry: "",
+  costCenterObjectTypeId: "",
+  costCenterObjectAttributeCode: "",
   peopleObjectTypeId: "",
   peopleObjectAttributeEmail: "",
   sharedCostsAccounts: "",
@@ -121,6 +127,7 @@ export interface Task {
   u_account_id: string;
   // Additional fields may be present
   CloudVendor: string;
+  BatchId: string;
   link?: string;
   Seller: string;
   Error?: string;

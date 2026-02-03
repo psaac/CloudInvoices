@@ -16,8 +16,8 @@ export const TableInvoices = ({ invoices }: { invoices: Invoices }) => {
       <Box xcss={xcss({ width: "50%" })}>
         <Stack>
           <Text size="large" weight="bold">
-            Total amount: {invoices.TotalAmount.toFixed(2)} | Network Shared Costs:{" "}
-            {invoices.NetworkSharedCosts.toFixed(2)}
+            Grand Total: {invoices.GrandTotal} | Total amount: {invoices.TotalAmount.toFixed(2)} | Network Shared Costs:{" "}
+            {invoices.NetworkSharedCosts.toFixed(2)} | Security Costs: {invoices.SecuritySharedCosts}
           </Text>
           {Array.from(invoices.Invoices.values()).map((invoice: Invoice) => (
             <>
