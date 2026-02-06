@@ -418,72 +418,79 @@ export class Chargeback {
     });
 
     // Generate IDocs files
-    // Always generate 01 file with defaultChargeLE
-    const defaultChargeLE = `${defaultLegalEntityCode} (${defaultLegalEntitySystem})`;
-    const invoiceChargeLE = `${invoice.LegalEntityCode} (${invoice.LegalEntitySystem})`;
-    const directBill = invoiceChargeLE === defaultChargeLE;
-    const iDoc01Lines = [
-      InvoiceIDocLine.getHeader(),
-      InvoiceIDocLine.getCreditLine(
-        invoice,
-        defaultLegalEntitySystem,
-        defaultLegalEntityCode,
-        invoiceChargeLE,
-        settings.defaultCostCenter,
-        "",
-        directBill ? "SA" : "DA",
-      ),
-      InvoiceIDocLine.getDebitLine(
-        invoice,
-        defaultLegalEntitySystem,
-        defaultLegalEntityCode,
-        invoiceChargeLE,
-        directBill ? invoice.CostCenter : "",
-        !directBill ? `CL${invoice.SoldToCode}` : "",
-        directBill ? "SA" : "DA",
-      ),
-    ];
-    const text01 = iDoc01Lines.map((line) => line.join("\t")).join("\n");
-    // console.log(`IDoc 01 Lines for Invoice ${invoice.CustomerId}:\n`, text01);
-    const uint8Array01 = new TextEncoder().encode(text01);
-    await attachToIssue({
-      fileContent: uint8Array01,
-      workItemKey: parentWorkItemKey,
-      fileName: `${invoice.ChargebackIdStr}-01.txt`,
-    });
-
-    if (!directBill) {
-      const iDoc02Lines = [
+    // All invoices that are under minimumChargebackAmount will not generate an IDoc, but the PDF will still be generated and attached to the sub-task
+    if (invoice.TotalAmount && invoice.TotalAmount >= settings.minimumChargebackAmount) {
+      // Always generate 01 file with defaultChargeLE
+      const defaultChargeLE = `${defaultLegalEntityCode} (${defaultLegalEntitySystem})`;
+      const invoiceChargeLE = `${invoice.LegalEntityCode} (${invoice.LegalEntitySystem})`;
+      const directBill = invoiceChargeLE === defaultChargeLE;
+      const iDoc01Lines = [
         InvoiceIDocLine.getHeader(),
         InvoiceIDocLine.getCreditLine(
           invoice,
-          invoice.LegalEntitySystem,
-          invoice.LegalEntityCode,
-          defaultChargeLE,
+          defaultLegalEntitySystem,
+          defaultLegalEntityCode,
+          invoiceChargeLE,
+          settings.defaultCostCenter,
           "",
-          `VL${invoice.RemitToCode}`,
-          "KR",
-          "02",
+          // directBill ? "SA" : "DA",
+          "SA",
         ),
         InvoiceIDocLine.getDebitLine(
           invoice,
-          invoice.LegalEntitySystem,
-          invoice.LegalEntityCode,
-          defaultChargeLE,
-          invoice.CostCenter,
-          "",
-          "KR",
-          "02",
+          defaultLegalEntitySystem,
+          defaultLegalEntityCode,
+          invoiceChargeLE,
+          directBill ? invoice.CostCenter : "",
+          !directBill ? `CL${invoice.SoldToCode}` : "",
+          "SA",
+          // directBill ? "SA" : "DA",
         ),
       ];
-      const text02 = iDoc02Lines.map((line) => line.join("\t")).join("\n");
-      // console.log(`IDoc 02 Lines for Invoice ${invoice.CustomerId}:\n`, text02);
-      const uint8Array02 = new TextEncoder().encode(text02);
+      const text01 = iDoc01Lines.map((line) => line.join("\t")).join("\n");
+      // console.log(`IDoc 01 Lines for Invoice ${invoice.CustomerId}:\n`, text01);
+      const uint8Array01 = new TextEncoder().encode(text01);
       await attachToIssue({
-        fileContent: uint8Array02,
+        fileContent: uint8Array01,
         workItemKey: parentWorkItemKey,
-        fileName: `${invoice.ChargebackIdStr}-02.txt`,
+        fileName: `${invoice.ChargebackIdStr}-01.txt`,
       });
+
+      if (!directBill) {
+        const iDoc02Lines = [
+          InvoiceIDocLine.getHeader(),
+          InvoiceIDocLine.getCreditLine(
+            invoice,
+            invoice.LegalEntitySystem,
+            invoice.LegalEntityCode,
+            defaultChargeLE,
+            "",
+            `VL${invoice.RemitToCode}`,
+            "SA",
+            // "KR",
+            "02",
+          ),
+          InvoiceIDocLine.getDebitLine(
+            invoice,
+            invoice.LegalEntitySystem,
+            invoice.LegalEntityCode,
+            defaultChargeLE,
+            invoice.CostCenter,
+            "",
+            "SA",
+            // "KR",
+            "02",
+          ),
+        ];
+        const text02 = iDoc02Lines.map((line) => line.join("\t")).join("\n");
+        // console.log(`IDoc 02 Lines for Invoice ${invoice.CustomerId}:\n`, text02);
+        const uint8Array02 = new TextEncoder().encode(text02);
+        await attachToIssue({
+          fileContent: uint8Array02,
+          workItemKey: parentWorkItemKey,
+          fileName: `${invoice.ChargebackIdStr}-02.txt`,
+        });
+      }
     }
     return subTaskKey;
   };

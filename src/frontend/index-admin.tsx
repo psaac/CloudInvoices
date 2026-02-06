@@ -629,14 +629,26 @@ const App = () => {
                     setSettings(newSettings);
                   }}
                 />
-                <Box xcss={{ width: "25%" }}>
-                  <AssetSelect
-                    label="Default Legal Entity Asset"
-                    workSpaceId={settings.workSpaceId}
-                    objectTypeId={settings.legalEntitiesObjectTypeId}
-                    assetId={settings.defaultLegalEntityId}
-                    onChange={(newAssetId: string) => {
-                      const newSettings = { ...settings, defaultLegalEntityId: newAssetId };
+
+                <AssetSelect
+                  label="Default Legal Entity Asset"
+                  workSpaceId={settings.workSpaceId}
+                  objectTypeId={settings.legalEntitiesObjectTypeId}
+                  assetId={settings.defaultLegalEntityId}
+                  onChange={(newAssetId: string) => {
+                    const newSettings = { ...settings, defaultLegalEntityId: newAssetId };
+                    setSettings(newSettings);
+                  }}
+                />
+
+                <Box>
+                  <Label labelFor="minimumChargebackAmount">Minimum Chargeback Amount</Label>
+                  <Textfield
+                    value={settings.minimumChargebackAmount}
+                    id="minimumChargebackAmount"
+                    type="number"
+                    onChange={(e) => {
+                      const newSettings = { ...settings, minimumChargebackAmount: Number(e.target.value) };
                       setSettings(newSettings);
                     }}
                   />

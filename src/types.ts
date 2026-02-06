@@ -62,6 +62,7 @@ export interface Settings {
   inputFieldCloudVendor: string;
   inputFieldChargebackId: string;
   inputFieldEmailsToNotify: string;
+  minimumChargebackAmount: number;
 }
 
 export const DefaultSettings: Settings = {
@@ -115,6 +116,7 @@ export const DefaultSettings: Settings = {
   inputFieldCloudVendor: "",
   inputFieldChargebackId: "",
   inputFieldEmailsToNotify: "",
+  minimumChargebackAmount: 50,
 };
 
 export const validSettings = (settings: Settings): boolean => {
