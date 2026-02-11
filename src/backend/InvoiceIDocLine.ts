@@ -26,7 +26,8 @@ export class InvoiceIDocLine {
       vendor,
       invoice.TotalAmount.toFixed(2),
       "USD",
-      `${invoice.Customer}-${invoice.BillingMonth}, ${invoice.RemitToCode}`,
+      // `${invoice.Customer}-${invoice.BillingMonth}, ${invoice.RemitToCode***}`,
+      `${invoice.Customer}-${invoice.BillingMonth}, ${invoice.SoldToCode}`,
       "",
     ];
   };
@@ -76,12 +77,4 @@ export class InvoiceIDocLine {
       "Busi",
     ];
   };
-
-  // public static getSystemAndCompany = (code: string) => {
-  //   const match = code.match(/\(\w{3,}\)$/);
-  //   const system = (match?.[0] ?? "").slice(1, -1) ?? "000";
-  //   const match2 = code.match(/^\w+\s\(/);
-  //   const company = match2?.[0]?.trim().slice(0, -2) ?? "";
-  //   return { system, company };
-  // };
 }
