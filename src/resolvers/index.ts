@@ -205,9 +205,11 @@ resolver.define("createInvoiceSubItem", async ({ payload }) => {
 });
 
 resolver.define("sendInvoicesAndIDocs", async ({ payload }) => {
-  const lPayload = payload as { mainChargebackOutKey: string };
+  const lPayload = payload as { mainChargebackOutKey: string; productionMode: boolean; settings: Settings };
   return await Chargeback.sendInvoicesAndIDocs({
     mainChargebackOutKey: lPayload.mainChargebackOutKey,
+    productionMode: lPayload.productionMode,
+    settings: lPayload.settings,
   });
 });
 

@@ -1,6 +1,6 @@
 import { Settings } from "../types";
 import { searchWorkItems } from "./jira/search";
-import { createWorkItem, deleteWorkItem } from "./jira/WorkItem";
+import { createWorkItem, deleteWorkItem, updateWorkItem } from "./jira/WorkItem";
 import { Fields } from "./Fields";
 import { attachToIssue } from "./jira/attachments";
 import { Invoice } from "../frontend/Invoices";
@@ -497,9 +497,21 @@ export class Chargeback {
 
   public static sendInvoicesAndIDocs = async ({
     mainChargebackOutKey,
+    productionMode,
+    settings,
   }: {
     mainChargebackOutKey: string;
+    productionMode: boolean;
+    settings: Settings;
   }): Promise<void> => {
+    // Update production mode field on main chargeback item
+    await updateWorkItem({
+      workItemKey: mainChargebackOutKey,
+      fields: {
+        [settings.inputFieldProductionMode]: productionMode ? [{ value: "Yes" }] : [],
+      },
+    });
+
     // Just transition work item
     await transition({
       workItemKey: mainChargebackOutKey,

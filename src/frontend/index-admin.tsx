@@ -163,6 +163,15 @@ const App = () => {
                       setSettings(newSettings);
                     }}
                   />
+                  <FieldSelect
+                    label="Field for Production Mode"
+                    fieldId={settings.inputFieldProductionMode}
+                    spaceId={settings.spaceId}
+                    onChange={(newFieldId: string) => {
+                      const newSettings = { ...settings, inputFieldProductionMode: newFieldId };
+                      setSettings(newSettings);
+                    }}
+                  />
                 </Inline>
               </BlueBox>
 

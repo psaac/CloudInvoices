@@ -13,6 +13,8 @@ import ForgeReconciler, {
   ProgressBar,
   RequiredAsterisk,
   Spinner,
+  Toggle,
+  Icon,
 } from "@forge/react";
 import { GlobalProvider, GlobalContext, GlobalContextType } from "./globalcontext";
 import { invoke } from "@forge/bridge";
@@ -64,6 +66,7 @@ const App = () => {
   const [progressIndeterminate, setProgressIndeterminate] = useState(true);
   const [progressSuccess, setProgressSuccess] = useState<"default" | "success">("default");
   const [currentProgressText, setCurrentProgressText] = useState("");
+  const [testMode, setTestMode] = useState(true);
 
   useEffect(() => {
     const fetchUserInput = async () => {
@@ -287,6 +290,35 @@ const App = () => {
     return (
       <Box padding="space.400">
         <Heading size="medium">Chargeback Cloud - version {globalContext?.apiData.settings.appVersion}</Heading>
+        {currentStep === CurrentStep.InvoicesGenerated && !testMode && (
+          <Box
+            backgroundColor="color.background.danger.bold"
+            padding="space.200"
+            xcss={{ marginTop: "space.200", borderRadius: "border.radius" }}
+          >
+            <Inline space="space.200" alignInline="center" alignBlock="center">
+              <Icon glyph="warning" label="" primaryColor="color.icon.inverse" />
+              <Heading size="small">
+                Production mode, IDocs will be sent to SAP PRODUCTION env. and PDF Invoices will be sent to final
+                recipients.
+              </Heading>
+            </Inline>
+          </Box>
+        )}
+        {currentStep === CurrentStep.InvoicesGenerated && testMode && (
+          <Box
+            backgroundColor="color.background.brand.bold"
+            padding="space.200"
+            xcss={{ marginTop: "space.200", borderRadius: "border.radius" }}
+          >
+            <Inline space="space.200" alignInline="center" alignBlock="center">
+              <Icon glyph="info" label="" primaryColor="color.icon.inverse" />
+              <Heading size="small">
+                Test mode, IDocs will be sent to SAP TEST env. and PDF Invoices will be sent to test email.
+              </Heading>
+            </Inline>
+          </Box>
+        )}
         <Inline spread="space-between">
           <Box padding="space.100">
             <Inline alignBlock="end">
@@ -314,6 +346,19 @@ const App = () => {
                   isRequired
                 />
               </Box>
+              {currentStep === CurrentStep.InvoicesGenerated && (
+                <Box padding="space.100">
+                  <Label labelFor="testMode">Test Mode</Label>
+                  <Toggle
+                    onChange={() => setTestMode((prev) => !prev)}
+                    id="testMode"
+                    isDisabled={loading}
+                    defaultChecked
+                    size="large"
+                    isChecked={testMode}
+                  />
+                </Box>
+              )}
               {currentStep === CurrentStep.DataFetched && allVendorsSelected(selectedCloudData, cloudVendors) && (
                 <Box padding="space.100">
                   <Button
@@ -428,7 +473,9 @@ const App = () => {
                         try {
                           if (invoiceLinesData && invoiceLinesData.length > 0) {
                             await invoke("sendInvoicesAndIDocs", {
+                              settings: globalContext?.apiData.settings ?? DefaultSettings,
                               mainChargebackOutKey: invoiceLinesData[0]?.Key,
+                              productionMode: !testMode,
                             });
                           }
                           setInvoices(emptyInvoices);

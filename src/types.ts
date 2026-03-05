@@ -59,6 +59,7 @@ export interface Settings {
   // Jira Fields
   inputFieldBatchId: string;
   inputFieldBillingMonth: string;
+  inputFieldProductionMode: string;
   inputFieldCloudVendor: string;
   inputFieldChargebackId: string;
   inputFieldEmailsToNotify: string;
@@ -113,6 +114,7 @@ export const DefaultSettings: Settings = {
   invoicePrefix: "CGB",
   inputFieldBatchId: "",
   inputFieldBillingMonth: "",
+  inputFieldProductionMode: "",
   inputFieldCloudVendor: "",
   inputFieldChargebackId: "",
   inputFieldEmailsToNotify: "",

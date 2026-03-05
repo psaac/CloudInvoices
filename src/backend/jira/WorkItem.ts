@@ -32,7 +32,7 @@ export const createWorkItem = async ({ issueTypeId, summary, spaceId, fields }: 
   });
   if (!responseCreate.ok) {
     throw new Error(
-      `Failed to create work item : ${responseCreate.statusText}, errors : ${await responseCreate.text()}`
+      `Failed to create work item : ${responseCreate.statusText}, errors : ${await responseCreate.text()}`,
     );
   }
   return await responseCreate.json();
@@ -41,16 +41,12 @@ export const createWorkItem = async ({ issueTypeId, summary, spaceId, fields }: 
 interface UpdateWorkItemType {
   workItemKey: string;
   fields?: {};
-  assetUpdate?: {};
 }
 // Work item update
-export const updateWorkItem = async ({ workItemKey, fields, assetUpdate }: UpdateWorkItemType) => {
+export const updateWorkItem = async ({ workItemKey, fields }: UpdateWorkItemType) => {
   const body = JSON.stringify({
     fields: {
       ...fields,
-    },
-    update: {
-      ...assetUpdate,
     },
   });
   // log(`updateWorkItem with body : ${body}`);
