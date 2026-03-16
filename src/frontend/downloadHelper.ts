@@ -1,16 +1,14 @@
-import { Cell, Column, Workbook, Worksheet } from "exceljs";
-import { Task } from "../types";
+import { Workbook } from "exceljs";
 import { CloudData } from "../backend/CloudData";
-import { loadTasks } from "./FillApplicationAccounts";
 import { Invoices } from "./Invoices";
-import { round2 } from "../backend/Utils";
+import { ExcelHelper } from "./excelHelper";
 
 export class DownloadHelper {
-  constructor(
-    private initProgress: (text: string) => void,
-    private setCurrentProgressText: (text: string) => void,
-    private updateProgress: (progress: number) => void,
-  ) {}
+  constructor() {
+    // private initProgress: (text: string) => void,
+    // private setCurrentProgressText: (text: string) => void,
+    // private updateProgress: (progress: number) => void,
+  }
 
   private internalDownload = async (workbook: Workbook, fileName: string) => {
     const buffer = await workbook.xlsx.writeBuffer();
@@ -22,7 +20,7 @@ export class DownloadHelper {
     element.download = fileName;
     document.body.appendChild(element); // Required for this to work in FireFox
     element.click();
-    this.updateProgress(2);
+    // this.updateProgress(2);
   };
 
   //   private autoWidth = (worksheet: Worksheet, minimalWidth = 10) => {
@@ -37,24 +35,10 @@ export class DownloadHelper {
   //     });
   //   };
 
-  private autosizeColumnCells = (worksheet: Worksheet) => {
-    let dataMax: number[];
-    let max: number;
-    worksheet.columns.forEach((column: Partial<Column>) => {
-      dataMax = [];
-      if (column && column.eachCell) {
-        column.eachCell({ includeEmpty: false }, (cell: Cell) => {
-          dataMax.push(cell.value?.toString().length || 0);
-        });
-        max = Math.max(...dataMax);
-        column.width = max < 10 ? 10 : max;
-      }
-    });
-  };
-
   // Download the Excel file containing input data
   public downloadRawData = async (selectedCloudData: Array<CloudData>, billingMonth: string) => {
-    this.initProgress("Loading data...");
+    // this.initProgress("Loading data...");
+    /*
     const workbook = new Workbook();
     const worksheet = workbook.addWorksheet("Input Data");
 
@@ -88,13 +72,16 @@ export class DownloadHelper {
       rows,
     });
     this.autosizeColumnCells(worksheet);
-
+    */
+    const workbook = new Workbook();
+    await ExcelHelper.generateRawData(selectedCloudData, workbook);
     await this.internalDownload(workbook, `${billingMonth}_raw_data.xlsx`);
   };
 
   // Download the Excel file DBT
   public downloadDBT = async (invoices: Invoices, billingMonth: string) => {
-    this.initProgress("Loading data...");
+    // this.initProgress("Loading data...");
+    /*
     const workbook = new Workbook();
     const worksheet = workbook.addWorksheet("Summary");
     worksheet.columns = [
@@ -155,6 +142,9 @@ export class DownloadHelper {
     });
 
     this.autosizeColumnCells(worksheet2);
+    */
+    const workbook = new Workbook();
+    await ExcelHelper.generateDBT(invoices, workbook);
 
     await this.internalDownload(workbook, `${billingMonth}_dbt.xlsx`);
   };

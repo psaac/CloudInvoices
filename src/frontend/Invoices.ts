@@ -2,6 +2,9 @@ import { invoke } from "@forge/bridge";
 import { Settings, Task } from "../types";
 import { saveWithMapsFromRaw } from "../backend/Utils";
 import { getChargebackIdStr, InvoiceLine } from "../backend/InvoiceLine";
+import { ExcelHelper } from "./excelHelper";
+import { Workbook } from "exceljs";
+import { CloudData } from "../backend/CloudData";
 
 export interface AppAccountCost {
   AppId: string;
@@ -59,11 +62,13 @@ export interface Invoices {
 export const generateInvoicesAndIDFiles = async ({
   settings,
   invoices,
+  selectedCloudData,
   baseUrl,
   updateProgress,
 }: {
   settings: Settings;
   invoices: Invoices;
+  selectedCloudData: Array<CloudData>;
   baseUrl: string;
   updateProgress: (progress: number, message?: string) => void;
 }): Promise<Array<InvoiceLine>> => {
@@ -110,6 +115,8 @@ export const generateInvoicesAndIDFiles = async ({
     invoice.ChargebackId = chargebackItem.lastChargebackNumber;
     invoice.ChargebackIdStr = getChargebackIdStr(settings.invoicePrefix, invoice.ChargebackId);
 
+    // if (index > 0) continue; // Debug: process only first invoice
+
     // Create sub-task
     const summary = `Invoice ${invoice.ChargebackIdStr} for Project ${invoice.Customer} - ${invoice.BillingMonth}`;
     const subTaskKey = (await invoke("createInvoiceSubItem", {
@@ -130,8 +137,29 @@ export const generateInvoicesAndIDFiles = async ({
     });
 
     index++;
-    // break; // Debug: process only first invoice
   }
+
+  // At the end, generate single Excel file containing all :
+  //   - Raw Data
+  //   - DBT
+  //   - E-INV file
+  // Attach it to the main work item
+  const workbook = new Workbook();
+  await ExcelHelper.generateRawData(selectedCloudData, workbook);
+  await ExcelHelper.generateDBT(invoices, workbook);
+  await ExcelHelper.generateEINV(invoices, workbook);
+
+  // Attach xlsx file
+  workbook.xlsx.writeBuffer().then(async (buffer) => {
+    const uint8Array02 = new Uint8Array(buffer);
+    await invoke("attachToIssue", {
+      workItemKey: chargebackItem.key,
+      fileContent: Array.from(uint8Array02),
+      fileName: `All Invoices - ${invoices.BillingMonth}.xlsx`,
+      fileType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+  });
+
   updateProgress(1);
   return result;
 };

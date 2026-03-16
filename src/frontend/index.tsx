@@ -249,20 +249,12 @@ const App = () => {
 
   // Download the Excel file containing input data
   const downloadRawData = async () => {
-    const downloadHelper = new DownloadHelper(
-      (text: string) => initProgress(text),
-      (text: string) => setCurrentProgressText(text),
-      (progress: number) => updateProgress(progress),
-    );
+    const downloadHelper = new DownloadHelper();
     await downloadHelper.downloadRawData(selectedCloudData, userInput.billingMonth);
   };
 
   const downloadDBT = async () => {
-    const downloadHelper = new DownloadHelper(
-      (text: string) => initProgress(text),
-      (text: string) => setCurrentProgressText(text),
-      (progress: number) => updateProgress(progress),
-    );
+    const downloadHelper = new DownloadHelper();
     await downloadHelper.downloadDBT(invoices, userInput.billingMonth);
   };
 
@@ -450,6 +442,7 @@ const App = () => {
                           const invoiceLines = await generateInvoicesAndIDFiles({
                             settings: globalContext?.apiData.settings ?? DefaultSettings,
                             invoices,
+                            selectedCloudData,
                             baseUrl: globalContext?.apiData.serverInfos.baseUrl ?? "",
                             updateProgress,
                           });

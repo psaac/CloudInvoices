@@ -12,10 +12,12 @@ export const attachToIssue = async ({
   fileContent,
   workItemKey,
   fileName,
+  fileType,
 }: {
   fileContent: Uint8Array;
   workItemKey: string;
   fileName: string;
+  fileType: string;
 }) => {
   const boundary = "----ForgeFormBoundary" + Math.random().toString(16).slice(2);
 
@@ -23,12 +25,17 @@ export const attachToIssue = async ({
   const bodyStart =
     `--${boundary}\r\n` +
     `Content-Disposition: form-data; name="file"; filename="${fileName}"\r\n` +
-    `Content-Type: application/pdf\r\n\r\n`;
+    `Content-Type: ${fileType}\r\n\r\n`;
 
   const bodyEnd = `\r\n--${boundary}--\r\n`;
 
   // Transformer en Buffer (Forge accepte les Uint8Array)
-  const body = new Uint8Array([...Buffer.from(bodyStart, "utf8"), ...fileContent, ...Buffer.from(bodyEnd, "utf8")]);
+  const startBytes = Buffer.from(bodyStart, "utf8");
+  const endBytes = Buffer.from(bodyEnd, "utf8");
+  const contentBytes = Buffer.from(
+    fileContent instanceof Uint8Array ? fileContent : new Uint8Array(Object.values(fileContent as any)),
+  );
+  const body = Buffer.concat([startBytes, contentBytes, endBytes]);
 
   // 4. Appeler l’API Jira
   const response = await api.asApp().requestJira(route`/rest/api/3/issue/${workItemKey}/attachments`, {
@@ -42,7 +49,7 @@ export const attachToIssue = async ({
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to upload PDF: ${response.status} ${response.statusText}`);
+    throw new Error(`Failed to upload file: ${response.status} ${response.statusText}`);
   }
 
   return await response.json();
@@ -59,7 +66,7 @@ export const getAttachment = async (attachmentId: string): Promise<string> => {
 
   if (!response.ok) {
     throw new Error(
-      "Failed to fetch attachment data with error: " + response.statusText + " : " + (await response.text())
+      "Failed to fetch attachment data with error: " + response.statusText + " : " + (await response.text()),
     );
   }
 

@@ -12,7 +12,7 @@ import { Fields } from "../backend/Fields";
 import { Assets } from "../backend/Assets";
 import { CloudData, CloudVendor } from "../backend/CloudData";
 import { UserInput } from "../backend/UserInput";
-import { getAttachment, deleteAttachment } from "../backend/jira/attachments";
+import { getAttachment, deleteAttachment, attachToIssue } from "../backend/jira/attachments";
 import { Chargeback } from "../backend/Chargeback";
 import { loadWithMapsFromRaw } from "../backend/Utils";
 import { currentUserHasRole } from "../backend/jira/role";
@@ -210,6 +210,16 @@ resolver.define("sendInvoicesAndIDocs", async ({ payload }) => {
     mainChargebackOutKey: lPayload.mainChargebackOutKey,
     productionMode: lPayload.productionMode,
     settings: lPayload.settings,
+  });
+});
+
+resolver.define("attachToIssue", async ({ payload }) => {
+  const lPayload = payload as { workItemKey: string; fileContent: number[]; fileName: string; fileType: string };
+  return await attachToIssue({
+    fileContent: new Uint8Array(lPayload.fileContent),
+    workItemKey: lPayload.workItemKey,
+    fileName: lPayload.fileName,
+    fileType: lPayload.fileType,
   });
 });
 

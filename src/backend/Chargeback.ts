@@ -415,6 +415,7 @@ export class Chargeback {
       fileContent: pdf,
       workItemKey: subTaskKey,
       fileName: `${invoice.ChargebackIdStr}.pdf`,
+      fileType: "application/pdf",
     });
 
     // Generate IDocs files
@@ -454,6 +455,7 @@ export class Chargeback {
         fileContent: uint8Array01,
         workItemKey: parentWorkItemKey,
         fileName: `${invoice.ChargebackIdStr}-01.txt`,
+        fileType: "text/plain",
       });
 
       if (!directBill) {
@@ -489,6 +491,7 @@ export class Chargeback {
           fileContent: uint8Array02,
           workItemKey: parentWorkItemKey,
           fileName: `${invoice.ChargebackIdStr}-02.txt`,
+          fileType: "text/plain",
         });
       }
     }
