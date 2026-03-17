@@ -164,6 +164,7 @@ export class Chargeback {
     const BLACK = rgb(1, 1, 1);
     const BLUE = rgb(0.28, 0.33, 0.55);
     const GREY = rgb(0.1, 0.1, 0.1);
+    const RED = rgb(0.8, 0.1, 0.1);
 
     const pdfHelper = await PDFHelper.create(pdfSettings);
 
@@ -174,6 +175,7 @@ export class Chargeback {
     const headerLabelValue2Y = 750;
     const headerLabelValue3Y = 740;
     const headerLabelValueSize = 8;
+    const doNotRechargeMessage = `No recharge will be applied to invoices under $${settings.minimumChargebackAmount}, please contact your Cloud Administrator for more details.`;
 
     pdfHelper.setStaticElements([
       // Header
@@ -263,12 +265,39 @@ export class Chargeback {
       return wrappedLines;
     };
 
+    const mustRecharge = invoice.TotalAmount && invoice.TotalAmount >= settings.minimumChargebackAmount;
+
+    // Below 50 test
+    if (!mustRecharge) {
+      pdfHelper.drawRectangleAndText({
+        point: { x: 0, y: 690 },
+        width: 510,
+        height: 23,
+        borderColor: RED,
+        textSize: 9,
+        textElements: [
+          {
+            text: doNotRechargeMessage,
+            point: { x: 5, y: 15 },
+            bold: true,
+          },
+        ],
+      });
+      // Also update custom field in JIRA (for email sending)
+      await updateWorkItem({
+        workItemKey: subTaskKey,
+        fields: {
+          [settings.inputFieldDoNotRechargeText]: doNotRechargeMessage,
+        },
+      });
+    }
+
     // Sold To / Remit To
     const soldToLines = makeLines(invoice.SoldToAddress);
     pdfHelper.drawRectangleAndText({
       point: { x: 0, y: 560 },
       width: 250,
-      height: 100,
+      height: 110,
       borderColor: BLUE,
       textSize: 8,
       textElements: [
@@ -292,7 +321,7 @@ export class Chargeback {
     pdfHelper.drawRectangleAndText({
       point: { x: 260, y: 560 },
       width: 250,
-      height: 100,
+      height: 110,
       borderColor: BLUE,
       textSize: 8,
       textElements: [
@@ -420,7 +449,7 @@ export class Chargeback {
 
     // Generate IDocs files
     // All invoices that are under minimumChargebackAmount will not generate an IDoc, but the PDF will still be generated and attached to the sub-task
-    if (invoice.TotalAmount && invoice.TotalAmount >= settings.minimumChargebackAmount) {
+    if (mustRecharge) {
       // Always generate 01 file with defaultChargeLE
       const defaultChargeLE = `${defaultLegalEntityCode} (${defaultLegalEntitySystem})`;
       const invoiceChargeLE = `${invoice.LegalEntityCode} (${invoice.LegalEntitySystem})`;

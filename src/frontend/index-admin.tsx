@@ -163,12 +163,23 @@ const App = () => {
                       setSettings(newSettings);
                     }}
                   />
+                </Inline>
+                <Inline alignInline="start" space="space.200">
                   <FieldSelect
                     label="Field for Production Mode"
                     fieldId={settings.inputFieldProductionMode}
                     spaceId={settings.spaceId}
                     onChange={(newFieldId: string) => {
                       const newSettings = { ...settings, inputFieldProductionMode: newFieldId };
+                      setSettings(newSettings);
+                    }}
+                  />
+                  <FieldSelect
+                    label="Field for 'Do Not Recharge Text'"
+                    fieldId={settings.inputFieldDoNotRechargeText}
+                    spaceId={settings.spaceId}
+                    onChange={(newFieldId: string) => {
+                      const newSettings = { ...settings, inputFieldDoNotRechargeText: newFieldId };
                       setSettings(newSettings);
                     }}
                   />

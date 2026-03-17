@@ -63,6 +63,7 @@ export interface Settings {
   inputFieldCloudVendor: string;
   inputFieldChargebackId: string;
   inputFieldEmailsToNotify: string;
+  inputFieldDoNotRechargeText: string;
   minimumChargebackAmount: number;
 }
 
@@ -118,6 +119,7 @@ export const DefaultSettings: Settings = {
   inputFieldCloudVendor: "",
   inputFieldChargebackId: "",
   inputFieldEmailsToNotify: "",
+  inputFieldDoNotRechargeText: "",
   minimumChargebackAmount: 50,
 };
 
