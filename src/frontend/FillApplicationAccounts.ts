@@ -74,12 +74,17 @@ class AppAccountProcess extends BaseProcess {
     const responseAppAccountAttr = this.applicationAssets.attrs.find(
       (attr: any) => attr.id === this.settings.applicationObjectAttributeId,
     );
+    let roundingAppAccountId = "NOT FOUND";
     if (responseAppAccountAttr) {
       this.applicationAssets.assets.forEach((asset: any) => {
         const appAccountKey = asset.attributes.find((attr: any) => attr.id === responseAppAccountAttr.id)
           ?.objectAttributeValues[0].displayValue;
         if (appAccountKey) {
           assetsAppAccountsCache.set(appAccountKey, asset);
+          // Also find rounding app account id
+          if (asset.id === this.settings.roundingAppAccountId) {
+            roundingAppAccountId = appAccountKey;
+          }
         }
       });
     }
@@ -109,25 +114,18 @@ class AppAccountProcess extends BaseProcess {
     });
 
     try {
-      // First exclude applications which have null cost
       const costsByAppId: Map<string, number> = new Map<string, number>();
       this.tasks.forEach((task) => {
+        // If appAccountKey is empty, set application account to the one used for rounding costs, and keep the cost in order to be recharged to the customer.
+        // This is to avoid losing costs when the application account is not set in the source data, as it is the case for some shared costs that we want to recharge.
+        if (task.u_account_id === "") {
+          task.u_account_id = roundingAppAccountId;
+        }
         const existingCost = costsByAppId.get(task.u_account_id) || 0;
         costsByAppId.set(task.u_account_id, existingCost + task.u_cost);
       });
-      costsByAppId.forEach((cost, appId) => {
-        if (cost <= 0) {
-          //   logInfo(`Excluding Application Account ${appId} with total cost of 0`);
-          this.tasks = this.tasks.filter((task) => task.u_account_id !== appId);
-        }
-      });
 
-      // Exclude tasks with empty account id
-      const filteredEntries = this.tasks.filter((entry) => entry.u_account_id);
-
-      // Skip empty subscription or account id
-      // filteredEntries.map(async (task: Task) => {
-      for (const task of filteredEntries) {
+      for (const task of this.tasks) {
         const appAccountKey = task.u_account_id;
         try {
           // Use cache

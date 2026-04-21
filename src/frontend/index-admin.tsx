@@ -602,6 +602,16 @@ const App = () => {
                     }}
                   />
                 </Box>
+                <AssetSelect
+                  label="Rounding App Account"
+                  workSpaceId={settings.workSpaceId}
+                  objectTypeId={settings.applicationObjectTypeId}
+                  assetId={settings.roundingAppAccountId}
+                  onChange={(newAssetId: string) => {
+                    const newSettings = { ...settings, roundingAppAccountId: newAssetId };
+                    setSettings(newSettings);
+                  }}
+                />
                 <Box>
                   <Label labelFor="invoicePrefix">Invoice Prefix</Label>
                   <Textfield

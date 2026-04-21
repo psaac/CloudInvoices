@@ -51,6 +51,7 @@ export interface Settings {
   peopleObjectTypeId: string;
   peopleObjectAttributeEmail: string;
   sharedCostsAccounts: string;
+  roundingAppAccountId: string;
   remitToAssetId: string;
   defaultLegalEntityId: string;
   defaultSAPAccount: string;
@@ -108,6 +109,7 @@ export const DefaultSettings: Settings = {
   peopleObjectTypeId: "",
   peopleObjectAttributeEmail: "",
   sharedCostsAccounts: "",
+  roundingAppAccountId: "",
   remitToAssetId: "",
   defaultLegalEntityId: "",
   defaultSAPAccount: "6226110000",
