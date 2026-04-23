@@ -164,6 +164,14 @@ resolver.define("getAttachment", async ({ payload }): Promise<string> => {
   return await getAttachment(lPayload.attachmentId);
 });
 
+resolver.define(
+  "getExistingChargebackItem",
+  async ({ payload }): Promise<Array<{ key: string; subtasks: Array<string> }> | null> => {
+    const lPayload = payload as { settings: Settings; billingMonth: string };
+    return await Chargeback.getExistingChargebackItem(lPayload);
+  },
+);
+
 resolver.define("createChargebackItem", async ({ payload }) => {
   const lPayload = payload as { settings: Settings; summary: string; billingMonth: string };
   // Create JIRA Work item to store Invoices (as sub-tasks) & ID Files
@@ -175,7 +183,7 @@ resolver.define("createChargebackItem", async ({ payload }) => {
   });
 });
 
-resolver.define("deleteInvoiceSubItem", async ({ payload }) => {
+resolver.define("deleteWorkItem", async ({ payload }) => {
   const lPayload = payload as { workItemKey: string };
   return await deleteWorkItem({ workItemKey: lPayload.workItemKey });
 });

@@ -1,6 +1,6 @@
 import { Settings } from "../types";
 import { searchWorkItems } from "./jira/search";
-import { createWorkItem, deleteWorkItem, updateWorkItem } from "./jira/WorkItem";
+import { createWorkItem, updateWorkItem } from "./jira/WorkItem";
 import { Fields } from "./Fields";
 import { attachToIssue } from "./jira/attachments";
 import { Invoice } from "../frontend/Invoices";
@@ -55,6 +55,30 @@ export class Chargeback {
     return result;
   };
 
+  public static getExistingChargebackItem = async ({
+    billingMonth,
+    settings,
+  }: {
+    billingMonth: string;
+    settings: Settings;
+  }): Promise<Array<{ key: string; subtasks: Array<string> }> | null> => {
+    // Search for existing invoice & sub-tasks
+    const existingItems = await searchWorkItems({
+      jql: `project = ${settings.spaceId} AND cf[${Fields.fieldId(
+        settings.inputFieldBillingMonth,
+      )}] ~ ${billingMonth} AND issueType = ${settings.targetWorkTypeId}`,
+      fields: ["key", "subtasks"],
+    });
+
+    if (existingItems && existingItems.length > 0) {
+      return existingItems.map((item: any) => ({
+        key: item.key,
+        subtasks: item.fields.subtasks.map((subtask: any) => subtask.key) || [],
+      }));
+    }
+    return null;
+  };
+
   public static createChargebackItem = async ({
     settings,
     summary,
@@ -72,14 +96,7 @@ export class Chargeback {
       lastChargebackNumber: number;
     } = { key: "", lastChargebackNumber: 0 };
 
-    // If work item already exists, return it (with subTasks & attachments)
-    const jql = `project = ${settings.spaceId} AND cf[${Fields.fieldId(
-      settings.inputFieldBillingMonth,
-    )}] ~ ${billingMonth} AND issueType = ${settings.targetWorkTypeId}`;
-    const existingItems = await searchWorkItems({ jql });
-    for (const item of existingItems) {
-      await deleteWorkItem({ workItemKey: item.key });
-    }
+    // Note : Nay existing work item with same billing month should have already been deleted in previous step
     // Create JIRA Work item to store Invoices (as sub-tasks) & ID Files
     const response = await createWorkItem({
       issueTypeId: settings.targetWorkTypeId,
@@ -99,7 +116,7 @@ export class Chargeback {
         settings.inputFieldChargebackId,
       )}] DESC`,
       fields: [settings.inputFieldChargebackId],
-      maxResults: 1,
+      limit: 1,
     });
     if (existingInvoiceItems && existingInvoiceItems.length > 0) {
       result.lastChargebackNumber = parseInt(existingInvoiceItems[0].fields[settings.inputFieldChargebackId]);

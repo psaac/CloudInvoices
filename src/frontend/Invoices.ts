@@ -88,6 +88,27 @@ export const generateInvoicesAndIDFiles = async ({
   const result: Array<InvoiceLine> = [];
   // Create JIRA Work item to store Invoices (as sub-tasks) & ID Files
   const mainSummary = `Chargeback Invoices & IDocs Files - ${invoices.BillingMonth}`;
+
+  // First cleanup any existing chargeback item for the same billing month to avoid duplicates
+  const existingChargebackItems = (await invoke("getExistingChargebackItem", {
+    settings,
+    billingMonth: invoices.BillingMonth,
+  })) as Array<{ key: string; subtasks: Array<string> }> | null;
+
+  if (existingChargebackItems && existingChargebackItems.length > 0) {
+    for (const workItem of existingChargebackItems) {
+      // Delete sub-tasks first
+      for (const subTaskKey of workItem.subtasks) {
+        updateProgress(0, `Cleaning up existing invoice item ${subTaskKey}...`);
+        await invoke("deleteWorkItem", { workItemKey: subTaskKey });
+      }
+      // Then delete main item
+      updateProgress(0, `Cleaning up existing chargeback item ${workItem.key}...`);
+      await invoke("deleteWorkItem", { workItemKey: workItem.key });
+    }
+  }
+
+  updateProgress(0, `Creating new chargeback item...`);
   const chargebackItem: {
     key: string;
     lastChargebackNumber: number;
